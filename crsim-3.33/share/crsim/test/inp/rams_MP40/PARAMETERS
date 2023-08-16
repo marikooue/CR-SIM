@@ -1,0 +1,74 @@
+# PARAMETERS CR-SIM v3.2x
+# speccify the number of OpenMP threads used in the code (integer, OMPThreadNum)
+8
+# specify the starting and ending indices of domain and desired saved time step  : ix_start,ix_end, iy_start,iy_end, iz_start,iz_end,it. If negative, all points in specific direction are used( 1-> nx, 1-> ny, 1->nz, respectivelly.
+250,300 #  # ix_start,ix_end 100,130
+300,350 #  #
+1,95    #1,120    # iz_start,iz_end
+1
+# specify the microphysics Morrison 10, JFan 20, Milbranndt-Yau 9 with snow spherical,optionally 901 for Milbranndt-Yau with snow not spherical, and Thompson 8, ICON-2mom 30, RAMS-2mom 40
+40
+# specify the indices of radar position ixc,iyc. if ixc=-999, radar locations are every grid box at iyc, iyc=-999, radar locations are every grid box at ixc.
+320,320 # #
+# specify the height of radar in meters
+0.d0  #
+#assign the scattering type to each hydrometeor (5 lines for MP_PHYSICS=10,20; 6 lines for MP_PHYSICS=9). Order has to be 1-cloud, 2-rain, 3-ice, 4-snow, 5-graupel and 6 -hail. 7-drizzle and 8-aggregate for RAMS
+"cloud"
+"rainb"
+"ice_ar0.20"
+"snow_ar0.60"
+"gh_ryzh"
+"gh_ryzh"
+"cloud"
+"snow_ar0.60"
+#assign the minimum thresholds of the input mixing ratio for the radar simulation. The input values of mixing ratios <= specified threshold will be set to 0. Order has to be 1-cloud, 2-rain, 3-ice, 4-snow, 5-graupel and 6 -hail. 7-drizzle and 8-aggregate for RAMS
+1.d-8
+1.d-8
+1.d-8
+1.d-8
+1.d-8 
+1.d-8
+1.d-8
+1.d-8
+## horienID (integer),sigma(double precis.) for each hydrometeor category  - choice of orientation distribution (1=chaotic,2=random orientation in the horizontal plane, 3=2D Gaussian with zero mean and sigma standard deviation). In the case those values are negative, the default value are used. If horienID /=3, sigma values are disregarded.Order has to be 1-cloud, 2-rain, 3-ice, 4-snow, 5-graupel (and 6 -hail). 7-drizzle and 8-aggregate for RAMS
+3,10.d0
+3,10.d0
+3,10.d0
+3,40.d0
+3,40.d0
+3,40.d0
+3,10.d0
+3,40.d0
+#Specify radar frequency (3.0d0, 5.5d0,9.5d0,35.0d0, 94.0d0)
+3.0d0
+#Specify elevation, if this ranges from -90 to 90, elevation has a fixed value; if -999, elevation of each pixel is relative to radar origin given by indices (ixc,iyc)  
+-999.d0
+#turn off the polaraimetric variables : yes ==1 , any other number no
+1
+#Specify radar beamwidth ( i.e one-way angular resolution Theta1) in degrees
+0.9d0
+#Specify the radar range resolution dr in meters (= (c Tau) / 2 )
+250.d0
+#Specify value of coefficient ZMIN in relation dBZ_min(dBZ)=ZMIN(dBZ)+20 log10(range in km) 
+-40.d0
+#Introduce cloud lidar (ceilometer,fr=905 nm) ceiloID=0 no; =1 yes
+1
+# Introduce micropulse lidar (MPL) mplID =1 for 353 nm, mplID =2 for 532 nm, or do not include MPL simulations,mplID<=0
+2
+# Whether to include an average aerosol profile in MPL simulation (aeroID=1), or not (aeroID=0)
+1
+# Value of desired  optical  to normalize the aerosol ext profile, if negative, do not normalize
+0.1d0
+# fixed value for aerosol lidar ratio aero_lidar_ratio
+30.d0
+# Introduce Doppler spectra (spectraID=1: yes; /=1:  no)
+0
+# Post Processing: Produce ARSCL variables : arsclID=1 yes; any other number no. arsclID=1 works with ceiloID=1 and mplID>0
+0
+# Post Processing: Produce microwave radiometer liquid water path taking account of field of view ARSCL variables : mwrID=1 yes; any other number no.
+0
+# Post Processing: Microwave radiometer field of view in degree
+5.9
+# Post Processing: Altitude of Microwave radiometer location in m
+0.0
+#

@@ -1,0 +1,38 @@
+######################################################
+# Databeses needed for crsim
+# Created by M Oue 2023.08.16
+######################################################
+
+LLUTS3: Lookup dables from scattering calculations
+P3: Database needed for WRF P3 (MP50) 
+SBM_20: Database needed for WRF SBM (MP20)
+
+Before running crsim, please download the tar-zipped scattering calculation lookup table files from:
+
+and untar/unzip them under ./LLUTS3/.
+
+Each tar-zipped file includes a directory containing scattering database files.
+The untarred directories should be placed under ./LLUTS3. So, LLUTS3 should contain:
+ceilo/
+cloud/
+gh_ryzh/
+graupel/
+graupel_ar0.60/
+graupel_ar0.80/
+ice_ar0.20/
+ice_ar0.90/
+mpl/
+partrimedice/
+partrimedice_ar0.40/
+partrimedice_ar0.60/
+partrimedice_ar0.80/
+raina/
+rainb/
+smallice/
+snow_ar0.60/
+unrimedice/
+unrimedice_ar0.40/
+unrimedice_ar0.60/
+unrimedice_ar0.80/
+
+

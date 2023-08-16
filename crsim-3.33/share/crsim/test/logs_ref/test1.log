@@ -1,0 +1,104 @@
+ *****************
+ ConfigInpFile/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/inp/wrf_MP10/PARAMETERS
+ conf%WRFInputFile=/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/inp/wrf_MP10/wrfout_d01_2015-06-27_20:00:00
+ conf%WRFmpInputFile=/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/inp/wrf_MP10/wrfout_d01_2015-06-27_20:00:00
+ conf%OutFile=/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/wrf_MP10_d01_2015-06-27_200000_t1.nc
+ *****************
+ LUTS=/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/../aux/LLUTS3/
+ Selected microphysics: 10 (WRF Morrison 2 moment)
+ OpenMP Thread Number:            8
+ Info: Getting x-domain, y-domain and height
+ Info: Getting press,temp,rho_d,qvapor,tke
+ press [mb]   127.96541992187500        975.19765625000002     
+ temp [C]  -64.536441544559068        28.744289533658446     
+ rho_d [kg/m^3]  0.21096313794670488        1.1178642642243681     
+ tke [m^2/s^2]  -999.00000000000000       -999.00000000000000     
+ Selected microphysics: 10 (Morrison 2 moment)
+ Required hydrometeor parameters: QCLOUD, QRAIN, QICE, QSNOW, QGAUP 
+ Required hydrometeor parameters: QNCLOUD(if any), QNRAIN, QNICE, QNSNOW, QNGAUPEL
+ Reading hydrometeor mixing ratios and number concentrations...
+ QCLOUD is found.
+ QGRAUP is found.
+ QICE is found.
+ QNCLOUD is found.
+ QNGRAUPEL is found.
+ QNICE is found.
+ QNRAIN is found.
+ QNSNOW is found.
+ QRAIN is found.
+ QSNOW is found.
+ Info: removing values below the given threshold
+ --------------------------------------
+ ---mix ratio--------------------------
+ cloud   0.0000000000000000       2.67648347653448582E-003
+ rain    0.0000000000000000       4.73119325761217624E-006
+ ice     0.0000000000000000       8.59343435877235606E-006
+ snow    0.0000000000000000       6.21845899217987608E-008
+ graup   0.0000000000000000        0.0000000000000000     
+ --------------------------------------
+ ---concentration-----------------------
+ rain    0.0000000000000000        159653.65625000000     
+ ice     0.0000000000000000        1012988.9375000000     
+ snow    0.0000000000000000        178201.28125000000     
+ graup   0.0000000000000000        0.0000000000000000     
+ --------------------------------------
+ --------------------------------------
+ loaded lut files :           23
+ LUT files preloading time :    31.309230394661427     
+ Loaded MPL LUT File : /storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/../aux/LLUTS3/mpl/cld_lidar_532_p20_d000.dat
+ Loaded MPL LUT File : /storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/../aux/LLUTS3/mpl/ice_lidar_532_m30_d500.dat
+ Number of Processed profiles in percents:            5
+ Number of Processed profiles in percents:           10
+ Number of Processed profiles in percents:           15
+ Number of Processed profiles in percents:           20
+ Number of Processed profiles in percents:           25
+ Number of Processed profiles in percents:           30
+ Number of Processed profiles in percents:           35
+ Number of Processed profiles in percents:           40
+ Number of Processed profiles in percents:           45
+ Number of Processed profiles in percents:           50
+ Number of Processed profiles in percents:           55
+ Number of Processed profiles in percents:           60
+ Number of Processed profiles in percents:           65
+ Number of Processed profiles in percents:           70
+ Number of Processed profiles in percents:           75
+ Number of Processed profiles in percents:           80
+ Number of Processed profiles in percents:           85
+ Number of Processed profiles in percents:           90
+ Number of Processed profiles in percents:           95
+ Number of Processed profiles in percents:          100
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/wrf_MP10_d01_2015-06-27_200000_t1.nc
+ 
+ hydrometeor total
+ Min,Max Zh  -99.992561786137230       -1.8604072204512743     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/wrf_MP10_d01_2015-06-27_200000_t1_cloud.nc
+ 
+ hydrometeor cloud
+ Min,Max Zh  -99.982729223891567       -9.9778889553272787     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/wrf_MP10_d01_2015-06-27_200000_t1_rain.nc
+ 
+ hydrometeor rain
+ Min,Max Zh  -48.706529065630249       -1.8604072204512743     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/wrf_MP10_d01_2015-06-27_200000_t1_ice.nc
+ 
+ hydrometeor ice
+ Min,Max Zh  -99.998630363533479       -31.058541437472329     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/wrf_MP10_d01_2015-06-27_200000_t1_snow.nc
+ 
+ hydrometeor snow
+ Min,Max Zh  -99.992561786137230       -26.069890557001756     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/wrf_MP10_d01_2015-06-27_200000_t1_graupel.nc
+ 
+ hydrometeor graupel
+ Min,Max Zh  1.79769313486231571E+308  -999.00000000000000     
+ 
+ 
+ tot. run time in sec   92.981003    
+ 
+ Finished!
+ 

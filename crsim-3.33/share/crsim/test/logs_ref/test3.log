@@ -1,0 +1,117 @@
+ *****************
+ ConfigInpFile/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/inp/rams_MP40/PARAMETERS
+ conf%WRFInputFile=/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/inp/rams_MP40/a-A-2013-06-19-210000-g3.h5
+ conf%WRFmpInputFile=/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/inp/rams_MP40/a-A-2013-06-19-210000-g3.h5
+ conf%OutFile=/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/rams_MP40_a-A-2013-06-19-210000-g3.nc
+ *****************
+ LUTS=/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/../aux/LLUTS3/
+ Selected microphysics: 40 (RAMS 2 moment)
+ OpenMP Thread Number:            8
+ Reading dx, z from /storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/inp/rams_MP40/a-A-2013-06-19-210000-g3.h5
+ RAMS dx,dy  -999.00000000000000     
+ Calculating dx, dy
+ dx,dy   499.99852758794617        500.53850477454688     
+ Info: Getting x-domain, y-domain and height
+ Info: Getting press,temp,rho_d,qvapor,tke
+ press [mb]   39.861715509895163        984.60943031821012     
+ temp [C]  -73.463029777362721        29.004342204676789     
+ rho_d [kg/m^3]  6.44911785415101246E-002   1.1128165404631032     
+ tke [m^2/s^2]  -999.00000000000000       -999.00000000000000     
+ Info: removing values below the given threshold
+ --------------------------------------
+ ---mixing ratio-----------------------
+ cloud   0.0000000000000000       5.20716246683150530E-004
+ rain    0.0000000000000000       3.53933558017160976E-007
+ ice     0.0000000000000000       3.94419301301240921E-004
+ snow    0.0000000000000000       1.95050342881586403E-005
+ graup   0.0000000000000000       2.02750070457113907E-005
+ hail    0.0000000000000000       2.00387670901136516E-008
+ drizzle   0.0000000000000000       2.25776268791832990E-008
+ aggregate   0.0000000000000000       2.81989778159186244E-004
+ --------------------------------------
+ ---concentration----------------------
+ cloud   0.0000000000000000        684209664.00000000     
+ rain    0.0000000000000000        33.369598388671875     
+ ice     0.0000000000000000        25497028.000000000     
+ snow    0.0000000000000000        30516.287109375000     
+ graup   0.0000000000000000        2245.4855957031250     
+ hail    0.0000000000000000       8.32783132791519165E-002
+ drizzle   0.0000000000000000        94.088745117187500     
+ aggregate   0.0000000000000000        1643605.3750000000     
+ --------------------------------------
+ --------------------------------------
+ loaded lut files :          900
+ LUT files preloading time :    105.13776326552033     
+ Loaded MPL LUT File : /storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/../aux/LLUTS3/mpl/cld_lidar_532_p20_d000.dat
+ Loaded MPL LUT File : /storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/../aux/LLUTS3/mpl/ice_lidar_532_m30_d400.dat
+ Loaded MPL LUT File : /storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/../aux/LLUTS3/mpl/cld_lidar_532_p20_d000.dat
+ Number of Processed profiles in percents:            5
+ Number of Processed profiles in percents:           10
+ Number of Processed profiles in percents:           15
+ Number of Processed profiles in percents:           20
+ Number of Processed profiles in percents:           25
+ Number of Processed profiles in percents:           30
+ Number of Processed profiles in percents:           35
+ Number of Processed profiles in percents:           40
+ Number of Processed profiles in percents:           45
+ Number of Processed profiles in percents:           50
+ Number of Processed profiles in percents:           55
+ Number of Processed profiles in percents:           60
+ Number of Processed profiles in percents:           65
+ Number of Processed profiles in percents:           70
+ Number of Processed profiles in percents:           75
+ Number of Processed profiles in percents:           80
+ Number of Processed profiles in percents:           85
+ Number of Processed profiles in percents:           90
+ Number of Processed profiles in percents:           95
+ Number of Processed profiles in percents:          100
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/rams_MP40_a-A-2013-06-19-210000-g3.nc
+ 
+ hydrometeor total
+ Min,Max Zh  -94.826040129822445        15.958554905548453     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/rams_MP40_a-A-2013-06-19-210000-g3_cloud.nc
+ 
+ hydrometeor cloud
+ Min,Max Zh  -77.850066939350583       -21.755770300710534     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/rams_MP40_a-A-2013-06-19-210000-g3_rain.nc
+ 
+ hydrometeor rain
+ Min,Max Zh  -30.786540219704492       -2.3410447841226789     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/rams_MP40_a-A-2013-06-19-210000-g3_ice.nc
+ 
+ hydrometeor ice
+ Min,Max Zh  -83.754691092245977       -16.431191948925424     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/rams_MP40_a-A-2013-06-19-210000-g3_snow.nc
+ 
+ hydrometeor snow
+ Min,Max Zh  -99.850062771901179        15.042461179458311     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/rams_MP40_a-A-2013-06-19-210000-g3_graupel.nc
+ 
+ hydrometeor graupel
+ Min,Max Zh  -48.433896044914619        3.3596996924709370     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/rams_MP40_a-A-2013-06-19-210000-g3_hail.nc
+ 
+ hydrometeor hail
+ Min,Max Zh  -18.587429499729762       -15.632029773962039     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/rams_MP40_a-A-2013-06-19-210000-g3_drizzle.nc
+ 
+ hydrometeor drizzle
+ Min,Max Zh  -54.710344556190492       -51.557401606613801     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/rams_MP40_a-A-2013-06-19-210000-g3_aggregate.nc
+ 
+ hydrometeor aggregate
+ Min,Max Zh  -48.725444066086141        12.666939795772192     
+ 
+ 
+ tot. run time in sec   159.74001    
+ 
+ Finished!
+ 

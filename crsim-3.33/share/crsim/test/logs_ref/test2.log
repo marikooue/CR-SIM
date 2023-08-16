@@ -1,0 +1,62 @@
+ *****************
+ ConfigInpFile/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/inp/wrf_MP50/PARAMETERS
+ conf%WRFInputFile=/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/inp/wrf_MP50/P3_wrfout_d01_2011-05-20_10_00_00
+ conf%WRFmpInputFile=/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/inp/wrf_MP50/P3_wrfout_d01_2011-05-20_10_00_00
+ conf%OutFile=/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/wrf_p3_wrfout_d01_2015-06-27_20:00:00.nc
+ *****************
+ LUTS=/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/../aux/LLUTS3/
+ Selected microphysics: 50 (WRF P3)
+ Include polarimetry
+ Number of OpenMP threads reset to 1 for selected MP_PHYSICS
+ OpenMP Thread Number:            1
+ Info: Getting x-domain, y-domain and height
+ Info: Getting press,temp,rho_d,qvapor,tke
+ press [mb]   109.82354492187500        964.87148437500002     
+ temp [C]  -72.327852089097121        24.001031760197407     
+ rho_d [kg/m^3]  0.18178831599351564        1.1324229749174739     
+ tke [m^2/s^2]  0.10000000149011612        2.5122799873352051     
+ Info: removing values below the given threshold
+ loaded lut files :         7751
+ LUT files preloading time :    97.386018591001630     
+ Loaded MPL LUT File : /storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/../aux/LLUTS3/mpl/cld_lidar_532_p20_d000.dat
+ Loaded MPL LUT File : /storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/../aux/LLUTS3/mpl/ice_lidar_532_m30_d900.dat
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/wrf_p3_wrfout_d01_2015-06-27_20:00:00.nc
+ 
+ hydrometeor total
+ Min,Max Zh  -77.326249913203085        52.259280374597374     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/wrf_p3_wrfout_d01_2015-06-27_20:00:00_cloud.nc
+ 
+ hydrometeor cloud
+ Min,Max Zh  -98.727316823293009       -7.1937197741965306     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/wrf_p3_wrfout_d01_2015-06-27_20:00:00_rain.nc
+ 
+ hydrometeor rain
+ Min,Max Zh  -48.252522228492552        52.259157724155536     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/wrf_p3_wrfout_d01_2015-06-27_20:00:00_smallice.nc
+ 
+ hydrometeor smallice
+ Min,Max Zh  -84.102041163273370       -27.575973299907769     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/wrf_p3_wrfout_d01_2015-06-27_20:00:00_unrimedice.nc
+ 
+ hydrometeor unrimedice
+ Min,Max Zh  -99.755967038893658        25.296896890278013     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/wrf_p3_wrfout_d01_2015-06-27_20:00:00_graupel.nc
+ 
+ hydrometeor graupel
+ Min,Max Zh  -34.468681284790151        25.846286184399943     
+ 
+ Writing:/storage2/starbuck/crsim-work/crsim-3.30/share/crsim/test/out/wrf_p3_wrfout_d01_2015-06-27_20:00:00_parimedice.nc
+ 
+ hydrometeor parimedice
+ Min,Max Zh  -99.970568212350372        40.506294232004912     
+ 
+ 
+ tot. run time in sec   445.72000    
+ 
+ Finished!
+ 
