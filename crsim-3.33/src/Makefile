@@ -50,8 +50,8 @@ am___top_builddir__bin_crsim_OBJECTS = phys_param_mod.$(OBJEXT) \
 	crsim_luts_mod.$(OBJEXT) crsim_mod.$(OBJEXT) \
 	postprocess_mod.$(OBJEXT) wrf_var_mod.$(OBJEXT) \
 	wrf_rvar_mod.$(OBJEXT) crsim.$(OBJEXT) crsim_subrs.$(OBJEXT) \
-	crsim_subrs_postprocess.$(OBJEXT) ReadConfParameters.$(OBJEXT) \
-	ReadInpRAMSFile.$(OBJEXT) ReadInpWRFFile.$(OBJEXT) \
+	crsim_subrs_airborne.$(OBJEXT) crsim_subrs_postprocess.$(OBJEXT) \
+	ReadConfParameters.$(OBJEXT) ReadInpRAMSFile.$(OBJEXT) ReadInpWRFFile.$(OBJEXT) \
 	WriteOutNetcdf.$(OBJEXT)
 __top_builddir__bin_crsim_OBJECTS =  \
 	$(am___top_builddir__bin_crsim_OBJECTS)
@@ -67,11 +67,11 @@ DIST_SOURCES = $(__top_builddir__bin_crsim_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-ACLOCAL = ${SHELL} /data1/moue/crsim/pubs/archives/crsim-3.33/build-aux/missing --run aclocal-1.11
-AMTAR = ${SHELL} /data1/moue/crsim/pubs/archives/crsim-3.33/build-aux/missing --run tar
-AUTOCONF = ${SHELL} /data1/moue/crsim/pubs/archives/crsim-3.33/build-aux/missing --run autoconf
-AUTOHEADER = ${SHELL} /data1/moue/crsim/pubs/archives/crsim-3.33/build-aux/missing --run autoheader
-AUTOMAKE = ${SHELL} /data1/moue/crsim/pubs/archives/crsim-3.33/build-aux/missing --run automake-1.11
+ACLOCAL = ${SHELL} /data1/moue/crsim/pubs/archives/crsim-3.32/build-aux/missing --run aclocal-1.11
+AMTAR = ${SHELL} /data1/moue/crsim/pubs/archives/crsim-3.32/build-aux/missing --run tar
+AUTOCONF = ${SHELL} /data1/moue/crsim/pubs/archives/crsim-3.32/build-aux/missing --run autoconf
+AUTOHEADER = ${SHELL} /data1/moue/crsim/pubs/archives/crsim-3.32/build-aux/missing --run autoheader
+AUTOMAKE = ${SHELL} /data1/moue/crsim/pubs/archives/crsim-3.32/build-aux/missing --run automake-1.11
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=none
@@ -99,7 +99,7 @@ LDFLAGS =
 LIBOBJS = 
 LIBS = -lnetcdff -lnetcdf -lz -lm 
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /data1/moue/crsim/pubs/archives/crsim-3.33/build-aux/missing --run makeinfo
+MAKEINFO = ${SHELL} /data1/moue/crsim/pubs/archives/crsim-3.32/build-aux/missing --run makeinfo
 MKDIR_P = /usr/bin/mkdir -p
 NCCMP = 
 NETCDF_CPPFLAGS = -I/usr//include
@@ -119,11 +119,11 @@ POW_LIB =
 SET_MAKE = 
 SHELL = /bin/sh
 STRIP = 
-VERSION = 3.32
-abs_builddir = /data1/moue/crsim/pubs/archives/crsim-3.33/src
-abs_srcdir = /data1/moue/crsim/pubs/archives/crsim-3.33/src
-abs_top_builddir = /data1/moue/crsim/pubs/archives/crsim-3.33
-abs_top_srcdir = /data1/moue/crsim/pubs/archives/crsim-3.33
+VERSION = 3.4
+abs_builddir = /data1/moue/crsim/pubs/archives/crsim-3.32/src
+abs_srcdir = /data1/moue/crsim/pubs/archives/crsim-3.32/src
+abs_top_builddir = /data1/moue/crsim/pubs/archives/crsim-3.32
+abs_top_srcdir = /data1/moue/crsim/pubs/archives/crsim-3.32
 ac_ct_CC = gcc
 ac_ct_FC = gfortran
 am__include = include
@@ -144,7 +144,7 @@ host_alias =
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /data1/moue/crsim/pubs/archives/crsim-3.33/build-aux/install-sh
+install_sh = ${SHELL} /data1/moue/crsim/pubs/archives/crsim-3.32/build-aux/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -153,7 +153,7 @@ mandir = ${datarootdir}/man
 mkdir_p = /usr/bin/mkdir -p
 oldincludedir = /usr/include
 pdfdir = ${docdir}
-prefix = /data1/moue/crsim/pubs/archives/crsim-3.33
+prefix = /data1/moue/crsim/pubs/archives/crsim-3.32
 program_transform_name = s,x,x,
 psdir = ${docdir}
 sbindir = ${exec_prefix}/sbin
@@ -194,7 +194,7 @@ AM_FCFLAGS = $(EXTRA_FCFLAGS) $(NETCDF_FORTRAN_FCFLAGS)
 AM_CPPFLAGS = -DNOMAGICK -DNOHDF -DUNIX $(NETCDF_CPPFLAGS)
 AM_CFLAGS = $(EXTRA_CFLAGS)
 AM_LDFLAGS = $(NETCDF_FORTRAN_LDFLAGS) $(NETCDF_LDFLAGS)
-__top_builddir__bin_crsim_SOURCES = phys_param_mod.f90 crsim_luts_mod.f90 crsim_mod.f90 postprocess_mod.f90 wrf_var_mod.f90 wrf_rvar_mod.f90 crsim.f90 crsim_subrs.f90 crsim_subrs_postprocess.f90 ReadConfParameters.f90 ReadInpRAMSFile.f90 ReadInpWRFFile.f90 WriteOutNetcdf.f90
+__top_builddir__bin_crsim_SOURCES = phys_param_mod.f90 crsim_luts_mod.f90 crsim_mod.f90 postprocess_mod.f90 wrf_var_mod.f90 wrf_rvar_mod.f90 crsim.f90 crsim_subrs.f90 crsim_subrs_airborne.f90 crsim_subrs_postprocess.f90 ReadConfParameters.f90 ReadInpRAMSFile.f90 ReadInpWRFFile.f90 WriteOutNetcdf.f90
 CLEANFILES = *.mod *.o 
 all: all-am
 

@@ -59,7 +59,7 @@
   Character(len=nf90_max_name)                             :: name, err_msg
   Integer, Allocatable, Dimension(:)                       :: dim_lengths
   Character(len=nf90_max_name), Allocatable , Dimension(:) :: dim_names
-  Integer                                                  :: aa
+  Integer                                                  :: aa, bb
     !
     !!
     !! Init
@@ -71,6 +71,8 @@
     !
     str%nxp1=0
     str%nyp1=0
+    !
+    bb = 0
     !
     status=  nf90_open(Trim(InpFile), NF90_NOWRITE, ncid)
     if (status.ne.0) then ; err_msg='Error in nf90_open' ; goto 999 ; endif
@@ -93,12 +95,13 @@
       dim_lengths(iDim) = length
       !
       Select Case (name)
-      Case ('phony_dim_0')        ;  str%nx    = length
-      Case ('phony_dim_1')       ;  str%nz    = length
+      Case ('phony_dim_0')       ;  str%ny    = length
+      Case ('phony_dim_1')       ;  str%nx    = length
       
-      Case ('phony_dim_2')       ;  aa              = length
+      Case ('phony_dim_2')       ;  str%nz    = length
       Case ('phony_dim_3')       ;  aa              = length
       Case ('phony_dim_4')       ;  aa              = length
+      Case ('phony_dim_5')       ;  bb              = length
       !
       !Case default ; status = 1 ; err_msg = 'Unrecognised dimension: ' ; Goto 999
       End Select
@@ -106,7 +109,10 @@
     enddo   ! iDim
     !
     str%nt    = 1
-    str%ny    = str%nx 
+    If (bb == 0) Then
+       str%nz = str%nx
+       str%nx = str%ny
+    Endif
     str%nxp1  = str%nx
     str%nyp1  = str%ny
     str%nzp1  = str%nz
@@ -567,7 +573,7 @@
   subroutine get_env_vars_rams(conf,wrf,env)
   Use wrf_var_mod
   Use crsim_mod
-  Use phys_param_mod, ONLY: Rd, eps,p0,cp,grav
+  Use phys_param_mod, ONLY: Rd, eps,p0,cp,grav,m999,T0K
   Implicit None
   !
   Type(conf_var),Intent(In)                  :: conf
@@ -586,7 +592,7 @@
   
   Integer            :: ix,iy,iz,izmin,izmax,idz,iz_inv
   Real*8,Dimension(:),Allocatable            :: hgt
-  
+  Integer                                    :: lowestiz
     !-------------------------------------------------------------
     !
     ix1=1 ; ix2=env%nx
@@ -738,7 +744,22 @@
     env%Kw(1:env%nx,1:env%ny,1:env%nz)=Kw(ix1:ix2,iy1:iy2,iz1:iz2)
     env%Ku(1:env%nx,1:env%ny,1:env%nz)=Ku(ix1:ix2,iy1:iy2,iz1:iz2)
     env%Kv(1:env%nx,1:env%ny,1:env%nz)=Kv(ix1:ix2,iy1:iy2,iz1:iz2)
-    
+
+    !-------------------------
+    ! get surface temperature and wind speed
+    lowestiz = 1;
+    if(wrf%geop_height(1,1,1,1) > wrf%geop_height(1,1,wrf%nz,1)) lowestiz = wrf%nz;
+    env%sfctemp(1:env%nx,1:env%ny)=wrf%temp(ix1:ix2,iy1:iy2,lowestiz,it) -T0K;
+    do ix=ix1,ix2
+       do iy=iy1,iy2
+          env%sfcwspd(ix-ix1+1,iy-iy1+1)=sqrt((uu(ix,iy,lowestiz)**2.d0)+(vv(ix,iy,lowestiz)**2.d0)) ;
+          !mask land
+          if(wrf%topo(ix,iy)>0.0) then
+             env%sfctemp(ix-ix1+1,iy-iy1+1)=m999
+             env%sfcwspd(ix-ix1+1,iy-iy1+1)=m999
+          end if
+       end do
+    end do
     !---------------------------------------------------------------------------------
     Deallocate(xtrack,ytrack,gheight,ww,uu,vv,Kw,Ku,Kv)
     !---------------------------------------------------------------------------------
@@ -769,6 +790,10 @@
     write(*,*) 'temp [C]',MinVal(env%temp),MaxVal(env%temp)
     write(*,*) 'rho_d [kg/m^3]',MinVal(env%rho_d),MaxVal(env%rho_d)
     write(*,*) 'tke [m^2/s^2]',MinVal(env%tke),MaxVal(env%tke)
+    if(conf%airborne==1) then
+    write(*,*) 'surface temp [C]',MinVal(env%sfctemp),MaxVal(env%sfctemp)
+    write(*,*) 'surface wind speed [m/s]',MinVal(env%sfcwspd),MaxVal(env%sfcwspd)
+    endif
     ! 
   return
   end subroutine get_env_vars_rams
@@ -1067,7 +1092,7 @@
     !get dx/dy
     str%dx=1./(str%xlong(2,1,1)-str%xlong(1,1,1)) !- fixed by oue Apr 2020
     str%dy=1./(str%xlat(1,2,1)-str%xlat(1,1,1)) !- fixed by oue Apr 2020
-    write(*,*) 'SAM dx,dy',str%dx,str%dy
+    write(*,*) 'SAM dx,dy',1./str%dx,1./str%dy
     !------------------------------------
     
     !------------------------------------
@@ -1895,7 +1920,7 @@
     !-----------------
     !
     env%x(1:env%nx)=wrf%xlong(ix1:ix2,1,1) - wrf%xlong(1,1,1) !correct x so that x(1)=0 modified by oue Apr 2020
-    env%y(1:env%ny)=wrf%xlat(1,iy1:iy2,1) - wrf%xlat(1,1,1) !correct y so that y(1)=0 modified by oue Apr 2020
+    env%y(1:env%ny)=wrf%xlat(1,iy1:iy2,1) - wrf%xlat(1,1,1) !correct x so that x(1)=0 modified by oue Apr 2020
     do ix=1,env%nx
       do iy=1,env%ny
         env%z(ix,iy,1:env%nz)=wrf%hgtm(iz1:iz2) ! m  
@@ -1955,7 +1980,6 @@
   return
   end subroutine get_env_vars_sam
   !!
-  !----------------------------------------------------------------
   !----------------------------------------------------------------
   ! Read CM1 output added by oue Apr 2020
   !---------------------------------------------------------------------

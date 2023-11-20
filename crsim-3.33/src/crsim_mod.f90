@@ -75,7 +75,9 @@
 !!                          deallocating and nullifying  mrad_var variables are accordingly updated.
 !!  Dec 2019       :: A.T   Included new variables RHOhv and RHOhv_tot in the mout_var structure. Subroutines for allocating, 
 !!                          deallocating and nullifying  mout_var variables are accordingly updated.
-!!
+!!  Oct 2023       :: M.O.  Included airborne radar simulation. airborne_var. env_var and conf_var are also modified to
+!!                          include airborne-simulation related variables.
+
 !!  *DESCRIPTION* 
 !!
 !!  This module contains a number of subroutines for allocating, deallocating  and
@@ -234,7 +236,12 @@ Real*8             :: mwr_alt               ! Altitude [m] of MWR location used 
 Integer            :: InpProfile_flag       ! Check if use Input profile data file (third file of the second argument) used for SAM (MP_PHYSICS=70)
 Character(len=365) :: InputProfile          ! the name of the profiling data file for SAM (netcdf) 
 !
+! airborne added by oue Oct 2023
 Integer            :: airborne              ! ==0 for radar looking up  (no airborne) and /= 0 otherwise
+Real*8             :: pulse_len             ! pulse length for airborne simulation
+Real*8             :: airborne_spd          ! speed of air craft m/s
+Real*8             :: airborne_azdeg        ! azimuth direction of moving aircraft deg from north
+Real*8             :: airborne_eldeg        ! elevation angle of moving aircraft deg from horizon
 
 !
 End Type conf_var
@@ -266,6 +273,8 @@ Real*8,Dimension(:,:,:),Allocatable       :: temp   ! [C]      temperature
 Real*8,Dimension(:,:,:),Allocatable       :: press  ! [mb]     pressure 
 Real*8,Dimension(:,:,:),Allocatable       :: tke    ! [m^2/s^2]  turbulence kinetic energy
 
+Real*8,Dimension(:,:),Allocatable       :: sfctemp! [degC]  surface temperature (sea surface temperature over ocean)
+Real*8,Dimension(:,:),Allocatable       :: sfcwspd! [m/s]  surface wind speed
 !
 End Type env_var
 !!
@@ -500,6 +509,16 @@ real*8,Dimension(:),Allocatable       :: vel_bins
 End type spectra_var
 
 
+Type airborne_var
+Integer   :: nx,ny,nz
+real*8,Dimension(:,:),Allocatable     :: Zsfc_ocean
+real*8,Dimension(:,:),Allocatable     :: Zsfc_land_coarse
+real*8,Dimension(:,:),Allocatable     :: Zsfc_land_flat
+real*8,Dimension(:,:,:),Allocatable     :: Dopp_airborne
+End type airborne_var
+
+
+
 Contains
 subroutine allocate_env_var(str)
 Implicit None
@@ -526,6 +545,8 @@ Allocate(str%qvapor(nx,ny,nz))
 Allocate(str%temp(nx,ny,nz))
 Allocate(str%press(nx,ny,nz))
 Allocate(str%tke(nx,ny,nz))
+Allocate(str%sfctemp(nx,ny))
+Allocate(str%sfcwspd(nx,ny))
 !
 return
 end subroutine allocate_env_var
@@ -546,6 +567,8 @@ str%qvapor=zero
 str%temp=zero
 str%press=zero
 str%tke=zero
+str%sfctemp=zero
+str%sfcwspd=zero
 !
 str%x=zero
 str%y=zero
@@ -572,6 +595,8 @@ Deallocate(str%rho_d)
 Deallocate(str%qvapor)
 Deallocate(str%temp)
 Deallocate(str%press)
+Deallocate(str%sfctemp)
+Deallocate(str%sfcwspd)
 !
 Deallocate(str%x)
 Deallocate(str%y)
@@ -1304,6 +1329,47 @@ str%Nave = izero
 !
 return
 end subroutine deallocate_spectra_var
+!!
+
+subroutine allocate_airborne_var(str)
+Use phys_param_mod, ONLY: zero
+Implicit None
+Type(airborne_var),Intent(InOut)        :: str
+Integer                                :: nx,ny,nz
+!
+nx=str%nx
+ny=str%ny
+nz=str%nz
+!
+Allocate(str%Zsfc_ocean(nx,ny))
+Allocate(str%Zsfc_land_coarse(nx,ny))
+Allocate(str%Zsfc_land_flat(nx,ny))
+Allocate(str%Dopp_airborne(nx,ny,nz))
+! initialize allocated variables
+str%Zsfc_ocean=zero
+str%Zsfc_land_coarse=zero
+str%Zsfc_land_flat=zero
+str%Dopp_airborne=zero
+!
+return
+end subroutine allocate_airborne_var
+!!
+subroutine deallocate_airborne_var(str)
+Use phys_param_mod, ONLY: zero
+Implicit None
+Type(airborne_var),Intent(InOut)        :: str
+!
+Deallocate(str%Zsfc_ocean)
+Deallocate(str%Zsfc_land_coarse)
+Deallocate(str%Zsfc_land_flat)
+Deallocate(str%Dopp_airborne)
+!
+str%nx=0
+str%ny=0
+str%nz=0
+!
+return
+end subroutine deallocate_airborne_var
 !!
 
 end module crsim_mod

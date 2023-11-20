@@ -18,6 +18,7 @@
   !!                        variables in real format which are after reading
   !!                        transformed to double precission variables via wrf_var_mod. 
   !!   Aug 26 2019  : A.T.  Introduced indentation.
+  !!   Apr    2020  : M.O.  Read CM1 with Morrison 2-moment microphysics (MP_PHYSICS=80)
   !!
   !!
   !!  *DESCRIPTION* 
@@ -58,7 +59,7 @@
   Character(len=nf90_max_name)                             :: name, err_msg
   Integer, Allocatable, Dimension(:)                       :: dim_lengths
   Character(len=nf90_max_name), Allocatable , Dimension(:) :: dim_names
-  Integer                                                  :: aa
+  Integer                                                  :: aa, bb
     !
     !!
     !! Init
@@ -70,6 +71,8 @@
     !
     str%nxp1=0
     str%nyp1=0
+    !
+    bb = 0
     !
     status=  nf90_open(Trim(InpFile), NF90_NOWRITE, ncid)
     if (status.ne.0) then ; err_msg='Error in nf90_open' ; goto 999 ; endif
@@ -92,12 +95,13 @@
       dim_lengths(iDim) = length
       !
       Select Case (name)
-      Case ('phony_dim_0')        ;  str%nx    = length
-      Case ('phony_dim_1')       ;  str%nz    = length
+      Case ('phony_dim_0')       ;  str%ny    = length
+      Case ('phony_dim_1')       ;  str%nx    = length
       
-      Case ('phony_dim_2')       ;  aa              = length
+      Case ('phony_dim_2')       ;  str%nz    = length
       Case ('phony_dim_3')       ;  aa              = length
       Case ('phony_dim_4')       ;  aa              = length
+      Case ('phony_dim_5')       ;  bb              = length
       !
       !Case default ; status = 1 ; err_msg = 'Unrecognised dimension: ' ; Goto 999
       End Select
@@ -105,7 +109,10 @@
     enddo   ! iDim
     !
     str%nt    = 1
-    str%ny    = str%nx 
+    If (bb == 0) Then
+       str%nz = str%nx
+       str%nx = str%ny
+    Endif
     str%nxp1  = str%nx
     str%nyp1  = str%ny
     str%nzp1  = str%nz
@@ -322,7 +329,7 @@
       write(*,*) 'Reading dx, z from ', Trim(InpText)
       call ReadInpRAMS_text(InpText,str%nz,dx,str%hgtm)
       str%dx=1.d0/dx
-      str%dy=1.d0/dy
+      str%dy=1.d0/dx !modified by oue Apr 2020; RAMS uses same dx=dy.
       write(*,*) 'RAMS dx,dy',dx
     endif
     
@@ -566,7 +573,7 @@
   subroutine get_env_vars_rams(conf,wrf,env)
   Use wrf_var_mod
   Use crsim_mod
-  Use phys_param_mod, ONLY: Rd, eps,p0,cp,grav
+  Use phys_param_mod, ONLY: Rd, eps,p0,cp,grav,m999,T0K
   Implicit None
   !
   Type(conf_var),Intent(In)                  :: conf
@@ -585,7 +592,7 @@
   
   Integer            :: ix,iy,iz,izmin,izmax,idz,iz_inv
   Real*8,Dimension(:),Allocatable            :: hgt
-  
+  Integer                                    :: lowestiz
     !-------------------------------------------------------------
     !
     ix1=1 ; ix2=env%nx
@@ -737,7 +744,22 @@
     env%Kw(1:env%nx,1:env%ny,1:env%nz)=Kw(ix1:ix2,iy1:iy2,iz1:iz2)
     env%Ku(1:env%nx,1:env%ny,1:env%nz)=Ku(ix1:ix2,iy1:iy2,iz1:iz2)
     env%Kv(1:env%nx,1:env%ny,1:env%nz)=Kv(ix1:ix2,iy1:iy2,iz1:iz2)
-    
+
+    !-------------------------
+    ! get surface temperature and wind speed
+    lowestiz = 1;
+    if(wrf%geop_height(1,1,1,1) > wrf%geop_height(1,1,wrf%nz,1)) lowestiz = wrf%nz;
+    env%sfctemp(1:env%nx,1:env%ny)=wrf%temp(ix1:ix2,iy1:iy2,lowestiz,it) -T0K;
+    do ix=ix1,ix2
+       do iy=iy1,iy2
+          env%sfcwspd(ix-ix1+1,iy-iy1+1)=sqrt((uu(ix,iy,lowestiz)**2.d0)+(vv(ix,iy,lowestiz)**2.d0)) ;
+          !mask land
+          if(wrf%topo(ix,iy)>0.0) then
+             env%sfctemp(ix-ix1+1,iy-iy1+1)=m999
+             env%sfcwspd(ix-ix1+1,iy-iy1+1)=m999
+          end if
+       end do
+    end do
     !---------------------------------------------------------------------------------
     Deallocate(xtrack,ytrack,gheight,ww,uu,vv,Kw,Ku,Kv)
     !---------------------------------------------------------------------------------
@@ -768,6 +790,8 @@
     write(*,*) 'temp [C]',MinVal(env%temp),MaxVal(env%temp)
     write(*,*) 'rho_d [kg/m^3]',MinVal(env%rho_d),MaxVal(env%rho_d)
     write(*,*) 'tke [m^2/s^2]',MinVal(env%tke),MaxVal(env%tke)
+    write(*,*) 'surface temp [C]',MinVal(env%sfctemp),MaxVal(env%sfctemp)
+    write(*,*) 'surface wind speed [m/s]',MinVal(env%sfcwspd),MaxVal(env%sfcwspd)
     ! 
   return
   end subroutine get_env_vars_rams
@@ -1040,7 +1064,7 @@
       !
       Case ('y')
       status=nf90_get_var(ncid,iVar,strr%xlat(1,:,1))
-      str%xlat(:,1,1) = dble (strr%xlat(:,1,1))
+      str%xlat(1,:,1) = dble (strr%xlat(1,:,1)) !- fixed by oue Apr 2020
       If (status/=0) Then
         err_msg = 'Error in my_nf90_get_var: y'
         Goto 999
@@ -1064,9 +1088,9 @@
     
     !------------------------------------
     !get dx/dy
-    str%dx=str%xlong(2,1,1)-str%xlong(1,1,1)
-    str%dy=str%xlat(1,2,1)-str%xlat(1,1,1)
-    write(*,*) 'SAM dx,dy',str%dx,str%dy
+    str%dx=1./(str%xlong(2,1,1)-str%xlong(1,1,1)) !- fixed by oue Apr 2020
+    str%dy=1./(str%xlat(1,2,1)-str%xlat(1,1,1)) !- fixed by oue Apr 2020
+    write(*,*) 'SAM dx,dy',1./str%dx,1./str%dy
     !------------------------------------
     
     !------------------------------------
@@ -1893,8 +1917,8 @@
     !
     !-----------------
     !
-    env%x(1:env%nx)=wrf%xlong(ix1:ix2,1,1)
-    env%y(1:env%ny)=wrf%xlat(1,iy1:iy2,1)
+    env%x(1:env%nx)=wrf%xlong(ix1:ix2,1,1) - wrf%xlong(1,1,1) !correct x so that x(1)=0 modified by oue Apr 2020
+    env%y(1:env%ny)=wrf%xlat(1,iy1:iy2,1) - wrf%xlat(1,1,1) !correct x so that x(1)=0 modified by oue Apr 2020
     do ix=1,env%nx
       do iy=1,env%ny
         env%z(ix,iy,1:env%nz)=wrf%hgtm(iz1:iz2) ! m  
@@ -1912,6 +1936,11 @@
     env%Kw(1:env%nx,1:env%ny,1:env%nz)=Kw(ix1:ix2,iy1:iy2,iz1:iz2)
     env%Ku(1:env%nx,1:env%ny,1:env%nz)=Ku(ix1:ix2,iy1:iy2,iz1:iz2)
     env%Kv(1:env%nx,1:env%ny,1:env%nz)=Kv(ix1:ix2,iy1:iy2,iz1:iz2)
+    !
+    ! added by oue Apr 2020
+    env%dx = 1./wrf%dx(it)
+    env%dy = 1./wrf%dy(it)
+    !--
     
     !---------------------------------------------------------------------------------
     Deallocate(ww,uu,vv,Kw,Ku,Kv)
@@ -1948,5 +1977,568 @@
     ! 
   return
   end subroutine get_env_vars_sam
+  !!
+  !----------------------------------------------------------------
+  ! Read CM1 output added by oue Apr 2020
+  !---------------------------------------------------------------------
+  subroutine ReadInpCM1_dim(InpFile,str,status)
+  Use netcdf
+  Use wrf_var_mod
+  Implicit None
+  !
+  Character(len=*),Intent(in)                              :: InpFile
+  Type(wrf_var),Intent(InOut)                              :: str
+  Integer, Intent(out)                                     :: status
+  !
+  Integer                                                  :: ncid,iDim,length
+  Integer                                                  :: nDims,nVars
+  Character(len=nf90_max_name)                             :: name, err_msg
+  Integer, Allocatable, Dimension(:)                       :: dim_lengths
+  Character(len=nf90_max_name), Allocatable , Dimension(:) :: dim_names
+    !
+    !!
+    !! Init
+    str%nt=0
+    str%nx=0
+    str%ny=0
+    str%nz=0
+    str%nzp1=0
+    !
+    str%nxp1=0
+    str%nyp1=0
+    !
+    status=  nf90_open(Trim(InpFile), NF90_NOWRITE, ncid)
+    if (status.ne.0) then ; err_msg='Error in nf90_open' ; goto 999 ; endif
+    !
+    status= nf90_inquire(ncid, nDims, nVars)
+    If (status/=0) Then ; err_msg = 'Error in nf90_inquire' ; goto 999 ; endif
+    !
+    Allocate(dim_names(1:nDims))
+    Allocate(dim_lengths(1:nDims))
+    !
+    ! Get info on the dimensions
+    ! Loop over the number of dimensions
+    !   
+    Do iDim = 1,nDims
+      !
+      status=nf90_inquire_dimension(ncid, idim, name=name, len=length)
+      !If (status/=0) Then ; err_msg = 'Error in nf90_inquire_dimension' ; Goto 999 ; End If
+      !
+      dim_names(iDim)   = name
+      dim_lengths(iDim) = length
+      !
+      Select Case (name)
+      Case ('ni')        ;  str%nx    = length
+      Case ('nj')        ;  str%ny    = length
+      Case ('nk')       ;  str%nz    = length
+      Case ('time')       ;  str%nt    = length
+      End Select
+      !
+    enddo   ! iDim
+    !
+    !str%nt    = 1
+    str%nxp1  = str%nx
+    str%nyp1  = str%ny
+    str%nzp1  = str%nz
+    
+    Deallocate(dim_names,dim_lengths)
+    !
+    status=  nf90_close(ncid)
+    if (status.ne.0) then ; err_msg='Error in nf90_close' ; goto 999 ; endif
+    !
+999 If (status.ne.0) Then
+      write(*,*) err_msg
+      Call Exit(1)
+    Endif
+    !
+    If (str%nxp1/=str%nx) then
+       write(*,*) 'Problem in input dimensions nx and nxp1'
+       write(*,*) 'nx=nxp1 for CM1 input'
+       Call Exit(1)
+    EndIf
+    !
+    If (str%nyp1/=str%ny) then
+      write(*,*) 'Problem in input dimensions ny and nyp1'
+      write(*,*) 'nx=ny, ny=nyp1 for CM1 input'
+      Call Exit(1)
+    EndIf
+    !
+  return
+  end subroutine ReadInpCM1_dim
+  !
+  !---------------------------------------------------------------------
+  subroutine ReadInpCM1_var(InpFile,str,status)
+  Use netcdf
+  Use wrf_var_mod
+  Use wrf_rvar_mod
+  Implicit None
+  !
+  Character(len=*),Intent(in)                              :: InpFile
+  Type(wrf_var),Intent(InOut)                              :: str
+  Integer, Intent(out)                                     :: status
+  !
+  Type(wrf_rvar)                                           :: strr
+  Integer                                                  :: ncid
+  Integer                                                  :: nDims,nVars,iVar
+  Character(len=nf90_max_name)                             :: name, err_msg
+  Character(len=nf90_max_name), Allocatable , Dimension(:) :: var_names
+  
+    !
+    !
+    ! define strr dimensions
+    strr%nt=str%nt
+    strr%nx=str%nx
+    strr%ny=str%ny
+    strr%nz=str%nz
+    strr%nzp1=str%nzp1
+    strr%nxp1=str%nxp1
+    strr%nyp1=str%nyp1
+    !
+    call allocate_wrf_rvar(strr)
+    call initialize_wrf_rvar(strr)
+    ! 
+    status=  nf90_open(Trim(InpFile), NF90_NOWRITE, ncid)
+    if (status.ne.0) then ; err_msg='Error in nf90_open' ; goto 999 ; endif
+    !
+    status= nf90_inquire(ncid, nDims, nVars)
+    If (status/=0) Then ; err_msg = 'Error in nf90_inquire' ; goto 999 ; endif
+    !
+    !
+    strr%p=0.e0
+    str%p=0.d0
+    !
+    ! Create arrays that contain the variables
+    Allocate(var_names(1:nVars))
+    !
+    Do  iVar=1,nVars
+      !
+      status= nf90_inquire_variable(ncid, iVar, name=name)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_inquire_variable: '//name
+        Goto 999
+      Endif
+      !
+      Select Case (Trim(Adjustl(name)))
+      !
+      !
+      Case ('uinterp')
+      status=nf90_get_var(ncid,iVar,strr%u)
+      str%u = dble (strr%u)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: uinterp'
+        Goto 999
+      End If
+      !
+      Case ('vinterp')
+      status=nf90_get_var(ncid,iVar,strr%v)
+      str%v = dble (strr%v)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: vinterp'
+        Goto 999
+      End If
+      !
+      Case ('winterp')
+      status=nf90_get_var(ncid,iVar,strr%w)
+      str%w = dble (strr%w)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: winterp'
+        Goto 999
+      End If
+      !
+      Case ('prs')
+      status=nf90_get_var(ncid,iVar,strr%press)
+      str%press = dble (strr%press)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: prs'
+        Goto 999
+      End If
+      !
+      !Case ('PP')
+      !status=nf90_get_var(ncid,iVar,strr%p)
+      !str%p = dble (strr%p)
+      !If (status/=0) Then
+      !  err_msg = 'Error in my_nf90_get_var: PP'
+      !  Goto 999
+      !End If
+      !
+      Case ('th')
+      status=nf90_get_var(ncid,iVar,strr%theta)
+      str%theta = dble (strr%theta)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: th (potential temperature)'
+        Goto 999
+      End If
+      !
+      Case ('z')
+      status=nf90_get_var(ncid,iVar,strr%hgtm)
+      str%hgtm = dble (strr%hgtm) * 1.d3
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: z'
+        Goto 999
+      End If
+      !
+      Case ('qv')
+      status=nf90_get_var(ncid,iVar,strr%QVAPOR)
+      str%QVAPOR = dble (strr%QVAPOR)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: QVAPOR'
+        Goto 999
+      End If
+      !
+      Case ('xh')
+      status=nf90_get_var(ncid,iVar,strr%xlong(:,1,1))
+      str%xlong(:,1,1) = dble (strr%xlong(:,1,1)) * 1.d3
+      str%xlong(:,1,1) = str%xlong(:,1,1) 
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: x'
+        Goto 999
+      End If
+      !
+      Case ('yh')
+      status=nf90_get_var(ncid,iVar,strr%xlat(1,:,1))
+      str%xlat(1,:,1) = dble (strr%xlat(1,:,1)) * 1.d3
+      str%xlat(1,:,1) = str%xlat(1,:,1) 
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: y'
+        Goto 999
+      End If
+      !
+      !
+      End Select
+      !
+    End Do
+    !
+    Deallocate(var_names)
+    
+    
+999 If (status.Ne.0) Then
+      write(*,*) err_msg
+      Call Exit(1)
+    Else
+      status=nf90_close(ncid)
+    Endif
+    !
+    
+    !------------------------------------
+    !get dx/dy
+    str%dx=1./(str%xlong(2,1,1)-str%xlong(1,1,1))
+    str%dy=1./(str%xlat(1,2,1)-str%xlat(1,1,1))
+    write(*,*) 'CM1 dx,dy',1./str%dx(1),1./str%dy(1)
+    !------------------------------------
+    !
+    !
+    call deallocate_wrf_rvar(strr)
+    !
+  return
+  end subroutine ReadInpCM1_var
+  !
+  !----------------------------------------------------------------
+  !
+  !!! Added by oue, for CM1 morrison microphysics
+  subroutine ReadInpCM1_MP_PHYSICS_80(InpFile,str,status)
+  Use netcdf
+  Use typeSizes
+  Use wrf_rvar_mod
+  Use wrf_var_mod
+  Implicit None
+  !
+  Character(len=*),Intent(in)                              :: InpFile
+  Type(wrf_var_mp80),Intent(InOut)                         :: str
+  Integer,Intent(out)                                      :: status
+  !
+  Type(wrf_rvar_mp80)                                      :: strr
+  integer                                                  :: nDims, nVars
+  integer                                                  :: ncid, iVar
+  Character(len=nf90_max_name), Allocatable , Dimension(:) :: var_names
+  Character(len=nf90_max_name)                             :: name, err_msg
+  Integer                     :: im,in
+    !
+    !- Massages 
+    write(*,*) 'Selected microphysics: 80 (CM1 Morrison microphysics)'
+    write(*,*) 'Required hydrometeor parameters: QC, QR, QI, QS, QG, NR, NI, NS, NG'
+    write(*,*) 'Reading hydrometeor mixing ratios and number concentrations...'
+    im=0 ; in=0 !counting the number of bins
+    !
+    strr%nt=str%nt
+    strr%nx=str%nx
+    strr%ny=str%ny
+    strr%nz=str%nz
+    !
+    call allocate_wrf_rvar_mp80(strr)
+    call initialize_wrf_rvar_mp80(strr)
+    !
+    !Open the file
+    status=  nf90_open(Trim(InpFile), NF90_NOWRITE, ncid)
+    If (status/=0) Then
+      err_msg = 'Error in my_nf90_open'
+      Goto 999
+    End If
+    !
+    ! Get info on nDims and nVars
+    status= nf90_inquire(ncid, nDims, nVars)
+    If (status/=0) Then
+      err_msg = 'Error in my_nf90_inquire'
+      Goto 999
+    End If
+    !
+    !
+    ! Create arrays that contain the variables
+    Allocate(var_names(1:nVars))
+    !
+    Do  iVar=1,nVars
+      !
+      status= nf90_inquire_variable(ncid, iVar, name=name)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_inquire_variable: '//name
+        Goto 999
+      Endif
+      !
+      Select Case (Trim(Adjustl(name)))
+      !!
+      
+      !
+      Case ('qc')
+      status=nf90_get_var(ncid,iVar,strr%QCLOUD) ; write(*,*) 'qc is found.'
+      str%QCLOUD = dble( strr%QCLOUD)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: QCLOUD'
+        Goto 999
+      End If
+      !
+      Case ('qr')
+      status=nf90_get_var(ncid,iVar,strr%QRAIN) ; write(*,*) 'qr is found.'
+      str%QRAIN = dble( strr%QRAIN)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: QRAIN'
+        Goto 999
+      End If
+      !
+      Case ('qi')
+      status=nf90_get_var(ncid,iVar,strr%QICE) ; write(*,*) 'qi is found.'
+      str%QICE = dble( strr%QICE)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: QICE'
+        Goto 999
+      End If
+      !
+      Case ('qs')
+      status=nf90_get_var(ncid,iVar,strr%QSNOW) ; write(*,*) 'qs is found.'
+      str%QSNOW = dble( strr%QSNOW)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: QSNOW'
+        Goto 999
+      End If
+      !
+      Case ('qg')
+      status=nf90_get_var(ncid,iVar,strr%QGRAUP) ; write(*,*) 'qg is found.'
+      str%QGRAUP = dble( strr%QGRAUP)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: QGRAUPEL'
+        Goto 999
+      End If
+      !
+      Case ('ncc')
+      status=nf90_get_var(ncid,iVar,strr%QNCLOUD) ; write(*,*) 'ncc is found.'
+      str%QNCLOUD = dble( strr%QNCLOUD)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: QNCLOUD'
+        Goto 999
+      End If
+      !!
+      Case ('ncr')
+      status=nf90_get_var(ncid,iVar,strr%QNRAIN) ; write(*,*) 'ncr is found.'
+      str%QNRAIN = dble( strr%QNRAIN)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: QNRAIN'
+        Goto 999
+      End If
+      !
+      Case ('nci')
+      status=nf90_get_var(ncid,iVar,strr%QNICE) ; write(*,*) 'nci is found.'
+      str%QNICE = dble( strr%QNICE)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: QNICE'
+        Goto 999
+      End If
+      !
+      Case ('ncs')
+      status=nf90_get_var(ncid,iVar,strr%QNSNOW) ; write(*,*) 'ncs is found.'
+      str%QNSNOW = dble( strr%QNSNOW)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: QNSNOW'
+        Goto 999
+      End If
+      !
+      Case ('ncg')
+      status=nf90_get_var(ncid,iVar,strr%QNGRAUP) ; write(*,*) 'ncg is found.'
+      str%QNGRAUP = dble( strr%QNGRAUP)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: QNGRAUP'
+        Goto 999
+      End If
+      !
+      End Select
+      !
+    End Do
+    !
+    Deallocate(var_names)
+    !
+    
+999 If (status.Ne.0) Then
+      write(*,*)  err_msg
+      Call Exit(1)
+    Else
+      status=nf90_close(ncid)
+    Endif
+    !
+    call deallocate_wrf_rvar_mp80(strr)
+    !
+  return
+  end subroutine ReadInpCM1_MP_PHYSICS_80
+  !!-- added by oue Apr 2020
+  !------------------------------------------------------------------------------------
+  subroutine get_env_vars_cm1(conf,wrf,env)
+  Use wrf_var_mod
+  Use crsim_mod
+  Use phys_param_mod, ONLY: Rd, eps,p0,cp,grav
+  Implicit None
+  !
+  Type(conf_var),Intent(In)                  :: conf
+  Type(wrf_var),Intent(InOut)                :: wrf
+  Type(env_var),Intent(InOut)                :: env
+  !
+  Integer                                    :: ix1,ix2, iy1,iy2,iz1,iz2,it
+  Real*8,Dimension(:),Allocatable            :: xtrack,ytrack
+  Real*8,Dimension(:,:,:),Allocatable        :: gheight,ww
+  Real*8,Dimension(:,:,:),Allocatable        :: uu,vv
+  Real*8,Dimension(:,:,:),Allocatable        :: Ku,Kv,Kw
+  
+  Integer            :: ix,iy,iz,izmin,izmax,idz
+    !-------------------------------------------------------------
+    !
+    ix1=1 ; ix2=env%nx
+    iy1=1 ; iy2=env%ny
+    iz1=1 ; iz2=env%nz
+    !it = 1
+    !           
+    !      
+    If (wrf%nx/=env%nx) Then
+      ix1=conf%ix_start ; ix2=conf%ix_end
+    EndIf
+    ! 
+    If (wrf%ny/=env%ny) Then
+      iy1=conf%iy_start ; iy2=conf%iy_end
+    EndIf
+    !
+    If (wrf%nz/=env%nz) Then
+      iz1=conf%iz_start ; iz2=conf%iz_end
+    EndIf
+    !
+    !If (wrf%nt>1) it=conf%it
+    !
+    ! ------------------------------------------------------------------------------  
+    ! ------------------------------------------------------------------------------ 
+    ! get meteor. fields from wrf vars    
+    !    
+    !kap=cp/Rd
+    
+    izmin=1 ; izmax=wrf%nz ; idz=1
+    if(wrf%press(1,1,1,1) < wrf%press(1,1,wrf%nz,1)) then
+      izmin=wrf%nz ; izmax=1 ; idz=-1
+    endif
+    !  
+    !------------------------------------------------------------------------------------
+    !-- temperature from theta
+    wrf%temp=wrf%theta*(wrf%press/100000.d0)**(287.d0/1004.d0) ! K 
+    !-------------------------------------------------------------------------------       
+    !
+    it=conf%it
+    ! x, y , z        
+    Allocate(xtrack(wrf%nx),ytrack(wrf%ny),gheight(wrf%nx,wrf%ny,wrf%nz),&
+            Kw(wrf%nx,wrf%ny,wrf%nz),Ku(wrf%nx,wrf%ny,wrf%nz),Kv(wrf%nx,wrf%ny,wrf%nz),&
+            uu(wrf%nx,wrf%ny,wrf%nz),vv(wrf%nx,wrf%ny,wrf%nz),ww(wrf%nx,wrf%ny,wrf%nz))
+    !                
+    !!----------------
+    do iz=1,wrf%nz
+      ww(:,:,iz)=wrf%w(:,:,iz,it)
+      if(iz<wrf%nz) then
+        Kw(:,:,iz)= (wrf%w(:,:,iz+1,it)-wrf%w(:,:,iz,it)) / (wrf%hgtm(iz+1)-wrf%hgtm(iz))
+      else
+        Kw(:,:,iz)= (wrf%w(:,:,iz,it)-wrf%w(:,:,iz-1,it)) / (wrf%hgtm(iz)-wrf%hgtm(iz-1))
+      endif
+      if(wrf%hgtm(1) > wrf%hgtm(wrf%nz)) Kw(:,:,iz)=Kw(:,:,iz)*(-1.d0) 
+    enddo
+    !
+    !---------------- 
+    do ix=1,wrf%nx
+      uu(ix,:,:)=wrf%u(ix,:,:,it)
+      if(ix<wrf%nx)then
+        Ku(ix,:,:)=wrf%dx(it) * (wrf%u(ix+1,:,:,it)-wrf%u(ix,:,:,it))
+      else
+        Ku(ix,:,:)=wrf%dx(it) * (wrf%u(ix,:,:,it)-wrf%u(ix-1,:,:,it))
+      endif
+    enddo
+    !
+    do iy=1,wrf%ny
+      vv(:,iy,:)=wrf%v(:,iy,:,it)
+      if(iy<wrf%ny)then
+        Kv(:,iy,:)=wrf%dy(it) * (wrf%v(:,iy+1,:,it)-wrf%v(:,iy,:,it))
+      else
+        Kv(:,iy,:)=wrf%dy(it) * (wrf%v(:,iy,:,it)-wrf%v(:,iy-1,:,it))
+      endif
+    enddo
+    !
+    !-----------------
+    !
+    env%x(1:env%nx)=wrf%xlong(ix1:ix2,1,1) - wrf%xlong(1,1,1) !correct x so that x(1)=0
+    env%y(1:env%ny)=wrf%xlat(1,iy1:iy2,1) - wrf%xlat(1,1,1) !correct y so that y(1)=0
+    do ix=1,env%nx
+      do iy=1,env%ny
+        env%z(ix,iy,1:env%nz)=wrf%hgtm(iz1:iz2) ! m  
+      enddo
+    enddo
+    !
+    env%u(1:env%nx,1:env%ny,1:env%nz)=wrf%u(ix1:ix2,iy1:iy2,iz1:iz2,conf%it)
+    env%v(1:env%nx,1:env%ny,1:env%nz)=wrf%v(ix1:ix2,iy1:iy2,iz1:iz2,conf%it)
+    env%w(1:env%nx,1:env%ny,1:env%nz)=wrf%w(ix1:ix2,iy1:iy2,iz1:iz2,conf%it)
+    !
+    !env%xlat(1:env%nx,1:env%ny)=wrf%xlat(ix1:ix2,iy1:iy2,it) ! deg   
+    !env%xlong(1:env%nx,1:env%ny)=wrf%xlong(ix1:ix2,iy1:iy2,it) ! deg  
+    !
+    env%Kw(1:env%nx,1:env%ny,1:env%nz)=Kw(ix1:ix2,iy1:iy2,iz1:iz2)
+    env%Ku(1:env%nx,1:env%ny,1:env%nz)=Ku(ix1:ix2,iy1:iy2,iz1:iz2)
+    env%Kv(1:env%nx,1:env%ny,1:env%nz)=Kv(ix1:ix2,iy1:iy2,iz1:iz2)
+    !
+    env%dx = 1./wrf%dx(it)
+    env%dy = 1./wrf%dy(it)
+    !
+    
+    !---------------------------------------------------------------------------------
+    Deallocate(ww,uu,vv,Kw,Ku,Kv)
+    !---------------------------------------------------------------------------------
+    !--------------------------------------------------------------------------------- 
+    !
+    write(*,*) 'Info: Getting press,temp,rho_d,qvapor'
+    env%press(1:env%nx,1:env%ny,1:env%nz)=wrf%press(ix1:ix2,iy1:iy2,iz1:iz2,it) ! Pa 
+    env%temp(1:env%nx,1:env%ny,1:env%nz)=wrf%temp(ix1:ix2,iy1:iy2,iz1:iz2,it)   ! K 
+    env%qvapor(1:env%nx,1:env%ny,1:env%nz)=wrf%qvapor(ix1:ix2,iy1:iy2,iz1:iz2,it) ! kg/kg 
+    env%tke(1:env%nx,1:env%ny,1:env%nz)=wrf%tke(ix1:ix2,iy1:iy2,iz1:iz2,it) ! m^2/s^2    
+    
+    write(*,*) 'Computing RHO from Input data'
+    env%rho_d=(env%press*env%qvapor)/(eps+env%qvapor) ! e water vapor pressure in Pa
+    env%rho_d=(env%press-env%rho_d)/(Rd * env%temp)   !  kg/m^3
+    !
+    ! convert T from K to C 
+    env%temp=env%temp-273.15d0 ! C 
+    ! convert press frpm Pa to mb   
+    env%press=env%press*1.d-2  ! mb 
+    
+    write(*,*) 'press [mb]',MinVal(env%press),MaxVal(env%press)
+    write(*,*) 'temp [C]',MinVal(env%temp),MaxVal(env%temp)
+    write(*,*) 'rho_d [kg/m^3]',MinVal(env%rho_d),MaxVal(env%rho_d)
+    !write(*,*) 'tke [m^2/s^2]',MinVal(env%tke),MaxVal(env%tke)
+    ! 
+  return
+  end subroutine get_env_vars_cm1
   !!
   !----------------------------------------------------------------

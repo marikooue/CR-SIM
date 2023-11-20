@@ -30,6 +30,7 @@
 !!                                   for down looking radar at aeroplane flying  along x axis at y=yc and scanning perpendicularly from -90  to +90
 !!                                   or aeroplane flying  along y axis at x=xc and scanning perpendicularly from -90  to +90
 !!                                   with zero elevation angle in vertical
+!! Oct    2023             -M.O.     Incorporated airborne radar simulator
 !!
 !!  *DESCRIPTION* 
 !!
@@ -142,8 +143,8 @@ if ( (str%ixc <= -999) .or. (str%iyc <= -999) ) then
   ! or airborne flying along x axis at x=yc and scanning perpendicularly from
   ! -90 to +90  
   str%airborne = 1
-  write(*,*) 'the option is not implemented yet'
-  stop
+  !write(*,*) 'the option is not implemented yet'
+  !stop
 endif
 !
 inputline='#'
@@ -257,6 +258,30 @@ read(id,'(a)') inputline
 enddo
 read(inputline,*) str%spectraID
 !
+!- airborne added by oue Oct 2023
+!- Airborne simulation ID (airborne): ==1: simulate airborne radar variables (surface backscatter and airplane radial velocity; /=1: not simulate airborne radar variables
+inputline='#'
+do while (inputline(1:1).eq.'#')
+read(id,'(a)') inputline
+enddo
+read(inputline,*) str%airborne
+!- Airborne simulation: airplane speed (m/s) and az/el directions (degrees from north/ degrees from horizon)
+str%airborne_spd=0.0
+str%airborne_azdeg=0.0
+str%airborne_eldeg=0.0
+inputline='#'
+do while (inputline(1:1).eq.'#')
+read(id,'(a)') inputline
+enddo
+read(inputline,*) str%airborne_spd,str%airborne_azdeg,str%airborne_eldeg
+!- Airborne simulation: pulse length (m). default is 100 m
+str%pulse_len = 100
+inputline='#'
+do while (inputline(1:1).eq.'#')
+read(id,'(a)') inputline
+enddo
+read(inputline,*) str%pulse_len
+!
 !- ARSCL parameter added by oue 2017.03.23
 inputline='#'
 do while (inputline(1:1).eq.'#')
@@ -347,12 +372,21 @@ write(*,*) 'Selected microphysics: 50 (WRF P3)'
 else if (str%MP_PHYSICS==70) then
 write(*,*) 'Selected microphysics: 70 (SAM warm bin)'
 else if (str%MP_PHYSICS==75) then
-write(*,*) 'Selected microphysics: 75 (SAM Morrison 2 moment'
+write(*,*) 'Selected microphysics: 75 (SAM Morrison 2 moment)'
+else if (str%MP_PHYSICS==80) then
+write(*,*) 'Selected microphysics: 80 (CM1 Morrison 2 moment)'
 else
 write(*,*) 'Unknown microphysics:',str%MP_PHYSICS
 end if
 if(str%radID /=1)     write(*,*) 'Include polarimetry'
 if(str%spectraID ==1) write(*,*) 'Include Doppler spectra'
+if(str%airborne ==1)  then ! airborne added by oue Oct 2023
+   write(*,*) 'Include airborne radar: the option is temporary inplemented (evaluation stage)'
+   write(*,*) 'Airplane speed: ',str%airborne_spd,'m/s'
+   write(*,*) 'Airplane azimuth direction: ',str%airborne_azdeg,'deg'
+   write(*,*) 'Airplane elevation direction: ',str%airborne_eldeg,'deg'
+   write(*,*) 'Airplane radar pulse length: ',str%pulse_len,'m'
+end if
 !==========================================================
 
 !

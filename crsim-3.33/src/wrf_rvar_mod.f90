@@ -68,6 +68,11 @@ real*4,Dimension(:,:,:),Allocatable        :: xlat  ! [deg] latitude; south is n
 real*4,Dimension(:,:,:),Allocatable        :: xlong ! [deg] longitude; west is negative
 !
 real*4,Dimension(:,:,:,:),Allocatable      :: tke   ! [m^2/s^2]  turbulence kinetic energy
+
+real*4,Dimension(:,:,:),Allocatable      :: sst ! [] Sear surface temperature
+real*4,Dimension(:,:,:),Allocatable      :: usfc  ! [m/s] surface u
+real*4,Dimension(:,:,:),Allocatable      :: vsfc  ! [m/s] surface v
+
 !
 End Type wrf_rvar
 
@@ -294,6 +299,7 @@ real*4,Dimension(:,:,:,:),Allocatable      :: qngraup ! [1/kg] Graupel  Number c
 End Type wrf_rvar_mp80
 !!!- added by oue
 !!
+
 
 
 Contains

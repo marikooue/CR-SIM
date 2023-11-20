@@ -89,10 +89,12 @@
   !! Aug 19 2019     -A.T.    Modified computation of the specific attenuation at horizontal and vertical polarizations to include
   !!                          the dependencies of Ah and Av on the angular moments.
   !! Aug 20 2019     -A.T     Resolved compilation warning for possible change of value in conversion elsewhere
-  !! Aug 27 2019     -A.T     Conversion from real to double precission
+  !! Aug 27 2019     -A.T     Conversion from real to dounle precission
+  !! Sep    2019     -M.O.    Temporary incorporated calculations for negative elevation angles.
   !! Dec    2019     -A.T     Introduced computation of cross-correlation coefficient RHOhv. Affected subroutine are 
   !!                          compute_polarim_vars(),GetPolarimetricInfoFromLUT*(), and processing*().
   !! Apr    2020     -M.O     Incorporated CM1 Morrison 2-moment microphysics (MP_PHYSICS=80)
+  !! Dec    2021     -M.O     Morrified cloud_morrison to incorporate different values for Nconst for SAM (MP-75)
   !!
   !!  *DESCRIPTION* 
   !!
@@ -172,6 +174,7 @@
   real*8,dimension(:),Allocatable   :: zhh_d,zvh_d,zvv_d ! mm^6, used for spectrum generation
   !
   real*8                            :: dmin,dmax ! um 
+  real*8                            :: Nconst !added Nconst, Dec. 11, 2021 
     !
     ! for each grid point
     !------------------------------------------------------------------------------------
@@ -179,11 +182,17 @@
     Call hydro_info(isc,dmin,dmax,nd) ! number of diams, min,max diam for which the scatt info are stored
     !
     Allocate(NN(nd),fvel(nd),diam(nd),rho(nd))
-    NN=0.d0 ; fvel=0.d0 ; diam=0.d0; rho=0.d0
+    NN=0.d0 ; fvel=0.d0 ; diam=0.d0; rho=0.d0 ; Nconst=-999.d0 !added Nconst, Dec. 11, 2021
     !!
     IF ((conf%MP_PHYSICS==10) .or. (conf%MP_PHYSICS==75) .or. (conf%MP_PHYSICS==80) ) THEN !add CM1 morrison by oue Apr 2020
       if (isc==1) then
-        call cloud_morrison(nd,dmin,dmax,temp,rho_d,qhydro,qnhydro,diam,rho,NN,fvel)   
+         !added Nconst, Dec. 11, 2021
+         Nconst = 250.d0 ! 1/cm^3
+         if ((conf%MP_PHYSICS==75)) then
+            Nconst = 100.d0 ! 1/cm^3 
+         endif
+        !call cloud_morrison(nd,dmin,dmax,temp,rho_d,qhydro,qnhydro,diam,rho,NN,fvel)   
+        call cloud_morrison(nd,dmin,dmax,temp,rho_d,qhydro,qnhydro,Nconst,diam,rho,NN,fvel) !added Nconst, Dec. 11, 2021   
       else
         call hydro_morrison(conf%MP10HailOption,isc,nd,dmin,dmax,temp,rho_d,qhydro,qnhydro,diam,rho,NN,fvel) 
       endif
@@ -693,7 +702,8 @@
   return
   end subroutine hydro_info_samsbm
   !
-  subroutine cloud_morrison(nd,dmin,dmax,temp,rho_d,qhydro,qnhydro,diam,rho,NN,fvel)
+  !subroutine cloud_morrison(nd,dmin,dmax,temp,rho_d,qhydro,qnhydro,diam,rho,NN,fvel)
+  subroutine cloud_morrison(nd,dmin,dmax,temp,rho_d,qhydro,qnhydro,Nconst,diam,rho,NN,fvel) !added Nconst, Dec. 11, 2021
   use crsim_mod
   Use phys_param_mod, ONLY :pi,grav, rhow, rhow_25C,oneOverThree
   Implicit None
@@ -704,6 +714,7 @@
   real*8,Intent(in)       :: rho_d     ! kg/m^3
   real*8,Intent(in)       :: qhydro    ! kg/kg
   Real*8,Intent(in)       :: qnhydro   ! 1/kg
+  Real*8,Intent(in)       :: Nconst    ! 1/cm^3 !added Nconst, Dec. 11, 2021
   real*8,Intent(out)      :: diam(nd)  ! m
   real*8,Intent(out)      :: rho(nd)   ! kg/m^3
   real*8,Intent(Out)      :: NN(nd)    ! 1/m^3
@@ -711,7 +722,7 @@
   !
   real*8                           :: rho_surf ! kg/m^3
   real*8                           :: visc ! Viscosity (kg/m/s)
-  real*8,parameter                 :: Nconst=250.d0 ! 1/cm^3
+!  real*8,parameter                 :: Nconst=250.d0 ! 1/cm^3 ! commented Dec. 11, 2021
   real*8                           :: av,bv
   real*8                           :: mu,Nc
   real*8,Dimension(:),Allocatable  :: lambda,N0
@@ -2629,9 +2640,16 @@
   real*8               :: sigma ! used only of horientID=3 
   !
   real*8               :: diff,diff0
+  !
+  real*8               :: abs_elev !absolute value for negative elevation by oue 20190911
+  !
     !
     j2=0
     j1=1
+    !---------------------------------------------
+    !---------------------------------------------
+    ! changed inp_elev to abs(inp_elev) for negative elevation by oue 20190911
+    abs_elev = abs(inp_elev)
     !---------------------------------------------
     !----------------------------------------------
     ! orientation distribution user parameters
@@ -2664,7 +2682,12 @@
     !--------------------------------------------
     ! get the elevation
     if (isc>1) then
-      call get_lut_str_var(n_lelev,lelev,inp_elev,elev)
+       if((inp_elev<=90.d0) .and. (inp_elev>=0.d0)) then
+       call get_lut_str_var(n_lelev,lelev,inp_elev,elev)
+       endif
+       if((inp_elev>=-90.d0) .and. (inp_elev<0.d0)) then
+       call get_lut_str_var(n_lelev,lelev,abs_elev,elev) ! changed inp_elev to abs(inp_elev) for negative elevation by oue 20190911
+       endif
     else
       elev=lelev(n_lelev)
     endif
@@ -2790,11 +2813,17 @@
      
     !oue PRELOAD P3       
     !call read_luts(Trim(LutFileName),inp_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+    ! changed inp_elev to abs(inp_elev) for negative elevation by oue 20190911
 #ifdef __PRELOAD_LUT__
-    call load_luts(Trim(LutFileName),inp_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+    call load_luts(Trim(LutFileName),abs_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
 #else
-    call read_luts(Trim(LutFileName),inp_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+    call read_luts(Trim(LutFileName),abs_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
 #endif
+!#ifdef __PRELOAD_LUT__
+!    call load_luts(Trim(LutFileName),inp_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+!#else
+!    call read_luts(Trim(LutFileName),inp_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+!#endif
      
     ldiam1=ldiam1*1.d-3  ! mm -> m
      
@@ -2911,8 +2940,16 @@
   real*8               :: lam_mm ! radar wavelength mm
   integer              :: horientID ! choice for orientation distribution
   real*8               :: sigma ! used only of horientID=3 
+  !
+  real*8               :: abs_elev !absolute value for negative elevation by oue 20190911
+  !                                                                                                         
     !
-    !----------------------------------------------
+  !---------------------------------------------
+  !---------------------------------------------
+  ! changed inp_elev to abs(inp_elev) for negative elevation 20190911
+  abs_elev = abs(inp_elev)
+  !---------------------------------------------
+  !----------------------------------------------
     ! orientation distribution user parameters
     horientID=conf%horientID(isc)
     if (horientID==3) sigma=conf%sigma(isc)
@@ -2947,7 +2984,12 @@
     !
     ! get the elevation
     if (isc>1) then
-      call get_lut_str_var(n_lelev,lelev,inp_elev,elev)
+      if((inp_elev<=90.d0) .and. (inp_elev>=0.d0)) then
+         call get_lut_str_var(n_lelev,lelev,inp_elev,elev)
+      endif
+      if((inp_elev>=-90.d0) .and. (inp_elev<0.d0)) then
+      call get_lut_str_var(n_lelev,lelev,abs_elev,elev)  ! changed inp_elev to abs(inp_elev) for negative elevation by oue 20190911
+      endif
     else
       elev=lelev(n_lelev)
     endif
@@ -3014,11 +3056,17 @@
     diam_check=0.d0; aoverb=0.d0; sb11=(0.d0,0.d0); sb22=(0.d0,0.d0)
     sf11=(0.d0,0.d0); sf22=(0.d0,0.d0)
     !-------------------------------------------------------------------------------------------------
+    ! changed inp_elev to abs(inp_elev) for negative elevation by oue 20190911
 #ifdef __PRELOAD_LUT__
-    call load_luts(Trim(LutFileName),inp_elev,1,nd,nd,diam_check,aoverb,sb11,sb22,sf11,sf22)
+    call load_luts(Trim(LutFileName),abs_elev,1,nd,nd,diam_check,aoverb,sb11,sb22,sf11,sf22)
 #else
-    call read_luts(Trim(LutFileName),inp_elev,1,nd,nd,diam_check,aoverb,sb11,sb22,sf11,sf22)
+    call read_luts(Trim(LutFileName),abs_elev,1,nd,nd,diam_check,aoverb,sb11,sb22,sf11,sf22)
 #endif
+!#ifdef __PRELOAD_LUT__
+!    call load_luts(Trim(LutFileName),inp_elev,1,nd,nd,diam_check,aoverb,sb11,sb22,sf11,sf22)
+!#else
+!    call read_luts(Trim(LutFileName),inp_elev,1,nd,nd,diam_check,aoverb,sb11,sb22,sf11,sf22)
+!#endif
     diam_check=diam_check*1.d-3  ! mm -> m
     sb22=-sb22
     
@@ -3112,12 +3160,19 @@
   real*8               :: sigma ! used only of horientID=3 
   !
   real*8               :: diff,diff0
+  !
+  real*8               :: abs_elev !absolute value for negative elevation by oue 20190911
+  !                                                                                                         
     !
     jj=1
     j1=1
     j2=0
     !---------------------------------------------
+    !---------------------------------------------
+    ! changed inp_elev to abs(inp_elev) for negative elevation by oue 20190911
+    abs_elev = abs(inp_elev)
     !----------------------------------------------
+    !---------------------------------------------
     ! orientation distribution user parameters
     horientID=conf%horientID(isc)
     if (horientID==3) sigma=conf%sigma(isc)
@@ -3148,7 +3203,12 @@
     !
     ! get the elevation
     if (isc>1) then
-      call get_lut_str_var(n_lelev,lelev,inp_elev,elev)
+       if((inp_elev<=90.d0) .and. (inp_elev>=0.d0)) then
+          call get_lut_str_var(n_lelev,lelev,inp_elev,elev)
+       endif
+       if((inp_elev>=-90.d0) .and. (inp_elev<0.d0)) then
+       call get_lut_str_var(n_lelev,lelev,abs_elev,elev) ! changed inp_elev to abs(inp_elev) for negative elevation by oue 20190911
+       endif
     else
       elev=lelev(n_lelev)
     endif
@@ -3217,11 +3277,17 @@
       lsf11=(0.d0,0.d0); lsf22=(0.d0,0.d0)
       
       !call read_luts(Trim(LutFileName),inp_elev,1,lnd,lnd,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+      ! changed inp_elev to abs(inp_elev) 20190911
 #ifdef __PRELOAD_LUT__
-      call load_luts(Trim(LutFileName),inp_elev,1,lnd,lnd,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+      call load_luts(Trim(LutFileName),abs_elev,1,lnd,lnd,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
 #else
-      call read_luts(Trim(LutFileName),inp_elev,1,lnd,lnd,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+      call read_luts(Trim(LutFileName),abs_elev,1,lnd,lnd,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
 #endif
+!#ifdef __PRELOAD_LUT__
+!      call load_luts(Trim(LutFileName),inp_elev,1,lnd,lnd,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+!#else
+!      call read_luts(Trim(LutFileName),inp_elev,1,lnd,lnd,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+!#endif
       ldiam1=ldiam1*1.d-3  ! mm -> m
       !
       ! find the closest LUT diametrs
@@ -3356,11 +3422,17 @@
       lsf11=(0.d0,0.d0); lsf22=(0.d0,0.d0)
      
       !call read_luts(Trim(LutFileName),inp_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+      ! changed inp_elev to abs(inp_elev) for negative elevation by oue 20190911
 #ifdef __PRELOAD_LUT__
-      call load_luts(Trim(LutFileName),inp_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+      call load_luts(Trim(LutFileName),abs_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
 #else
-      call read_luts(Trim(LutFileName),inp_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+      call read_luts(Trim(LutFileName),abs_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
 #endif
+!#ifdef __PRELOAD_LUT__
+!      call load_luts(Trim(LutFileName),inp_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+!#else
+!      call read_luts(Trim(LutFileName),inp_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+!#endif
       ldiam1=ldiam1*1.d-3  ! mm -> m
      
    
@@ -3500,11 +3572,18 @@
   integer              :: horientID ! choice for orientation distribution
   real*8               :: sigma     ! used only of horientID=3 
   real*8               :: diff,diff0
-    !
+  !
+  real*8               :: abs_elev !absolute value for negative elevation by oue 20190911
+  !
     jj=1
     j2=0
     j1=1
     !---------------------------------------------
+    !---------------------------------------------
+    ! changed inp_elev to abs(inp_elev) for negative elevation by oue 20190911
+    abs_elev = abs(inp_elev)
+    !---------------------------------------------
+    !---------------------------------------------    
     ! orientation distribution user parameters
     horientID=conf%horientID(isc)
     if (horientID==3) sigma=conf%sigma(isc)
@@ -3518,7 +3597,12 @@
     ttt=ltemp_smallice(1)
     !
     ! get the elevation
+    if((inp_elev<=90.d0) .and. (inp_elev>=0.d0)) then
     call get_lut_str_var(n_lelev,lelev,inp_elev,elev)
+    end if
+    if((inp_elev>=-90.d0) .and. (inp_elev<0.d0)) then
+    call get_lut_str_var(n_lelev,lelev,abs_elev,elev) ! changed inp_elev to abs(inp_elev) for negative elevation by oue 20190911
+    endif
     !
     call get_lut_str(fff,ttt,elev,frq_str,t_str,el_str)
     !
@@ -3627,11 +3711,17 @@
     lsf11=(0.d0,0.d0); lsf22=(0.d0,0.d0)
     !
     !oue PRELOAD P3
+    ! changed inp_elev to abs(inp_elev) for negative elevation by oue 20190911
 #ifdef __PRELOAD_LUT__
-    call load_luts(Trim(LutFileName),inp_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+    call load_luts(Trim(LutFileName),abs_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
 #else
-    call read_luts(Trim(LutFileName),inp_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+    call read_luts(Trim(LutFileName),abs_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
 #endif
+!#ifdef __PRELOAD_LUT__
+!    call load_luts(Trim(LutFileName),inp_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+!#else
+!    call read_luts(Trim(LutFileName),inp_elev,ir1,ir2,nir,ldiam1,laoverb1,lsb11,lsb22,lsf11,lsf22)
+!#endif
      
     ldiam1=ldiam1*1.d-3  ! mm -> m
     nj=j2-j1+1
@@ -4273,9 +4363,23 @@
   !
   real*8                    :: aa1,aa2,aa3,aa4,aa5,aa6,aa7
     !
+  !
+  real*8                    :: abs_elev ! absolute value of elev for negative elevation by oue 20190911
+  !
+  !---------------------------------
+  !---------------------------------
+  ! changed elev to abs(elev) for negative elevation by oue 20190911
+  abs_elev = abs(elev)
+  !---------------------------------
+  !---------------------------------
     Cpol_mm=(lam_mm*lam_mm*lam_mm*lam_mm)/(pi*pi*pi*pi*pi * K2 ) ! mm^4
-    
+
+    if((elev<=90.d0) .and. (elev>=0.d0)) then
     call get_orientation_coeff(horientID,elev,sigma,aa1,aa2,aa3,aa4,aa5,aa6,aa7)
+    end if
+    if((elev>=-90.d0) .and. (elev<0.d0)) then
+       call get_orientation_coeff(horientID,abs_elev,sigma,aa1,aa2,aa3,aa4,aa5,aa6,aa7) ! changed elev to abs(elev) for negative elevation by oue 20190911
+    endif
     Allocate(zhh1(nd),zvv1(nd),zvh1(nd),kdp1(nd),sigma_ext_h(nd),sigma_ext_v(nd),rhohv1c(nd))
     !
     zhh1=0.d0 ; zvv1=0.d0; zvh1=0.d0; kdp1=0.d0; sigma_ext_h=0.d0 
@@ -4295,6 +4399,7 @@
     sigma_ext_h=2.d0*lam_mm * ( dimag(fb0) - aa2*dimag(fb0-fa0) ) ! mm^2
     sigma_ext_v=2.d0*lam_mm * ( dimag(fb0) - aa1*dimag(fb0-fa0) ) ! mm^2
     !
+    
     Allocate(w1(nd),w2(nd))
     w1=0.d0 ; w2=0.d0
     !
@@ -4324,9 +4429,14 @@
     !
     DVh=Sum(zhh1*NN*fvel)   ! mm^6/m^3 * m/s
     ! AT use conf%airborne for Dopp here
+    if ((elev>=-90.d0) .and. (elev < 0.d0)) DVh=Sum(zhh1*NN*fvel*(-1.d0)) ! modified for negative elevation by oue 20190911
     Dopp=(ww*Zhh-DVh) !  mm^6/m^3 * m/s, positive upward or away from the radar
     !
-    if (Zhh>0.d0) dDVh=Sum(zhh1*NN*(fvel-DVh/Zhh)*(fvel-DVh/Zhh)) ! mm^6/m^3*(m/s)^2
+    if (Zhh>0.d0) then  ! modified for negative elevation by oue 20190911
+       dDVh=Sum(zhh1*NN*(fvel-DVh/Zhh)*(fvel-DVh/Zhh)) ! mm^6/m^3*(m/s)^2
+       if (elev < 0.d0) dDVh=Sum(zhh1*NN*(fvel*(-1.d0)-DVh/Zhh)*(fvel*(-1.d0)-DVh/Zhh))
+    end if
+    !if (Zhh>0.d0) dDVh=Sum(zhh1*NN*(fvel-DVh/Zhh)*(fvel-DVh/Zhh)) ! mm^6/m^3*(m/s)^2
     !
     !
     Kdp=180.d0/pi*Sum(kdp1*NN)*1.d-3  ! deg/km  specific differencial phase
@@ -4364,10 +4474,25 @@
   real*8                    :: Cpol_mm ! mm^4
   !
   real*8                    :: aa2,aa4
-    !
+  !
+  real*8                    :: abs_elev ! absolute value of elev for negative elevation by oue 20190911
+  !
+  !--------------------------------------
+  !--------------------------------------
+  ! changed elev to abs(elev) for negative elevation by oue 20190911
+  abs_elev = abs(elev)
+  !--------------------------------------
+  !--------------------------------------
+  !
     Cpol_mm=(lam_mm*lam_mm*lam_mm*lam_mm)/(pi*pi*pi*pi*pi * K2 ) ! mm^4
     !
-    call get_orientation_coeff_24(horientID,elev,sigma,aa2,aa4)
+    aa2=0.d0; aa4=0.d0;
+    if((elev<=90.d0) .and. (elev>=0.d0)) then
+       call get_orientation_coeff_24(horientID,elev,sigma,aa2,aa4)
+    end if
+    if((elev>=-90.d0) .and. (elev<0.d0)) then
+       call get_orientation_coeff_24(horientID,abs_elev,sigma,aa2,aa4)! changed elev to abs(elev) for negative elevation by oue 20190911
+    end if
     !
     Allocate(zhh1(nd),sigma_ext_h(nd))
     zhh1=0.d0 ; sigma_ext_h=0.d0 
@@ -4382,8 +4507,13 @@
     Zhh=Sum(zhh1*NN)  ! mm^6/m^3
     DVh=Sum(zhh1*NN*fvel)   ! mm^6/m^3 * m/s
     ! AT use conf%airborne for Dopp
+    if ((elev>=-90.d0) .and. (elev < 0.d0)) DVh=Sum(zhh1*NN*fvel*(-1.d0)) ! modified for negative elevation by oue 20190911
     Dopp=(ww*Zhh-DVh)
-    if (Zhh>0.d0) dDVh=Sum(zhh1*NN*(fvel-DVh/Zhh)*(fvel-DVh/Zhh)) ! mm^6/m^3*(m/s)^2
+    if (Zhh>0.d0) then ! modified for negative elevation by oue 20190911
+       dDVh=Sum(zhh1*NN*(fvel-DVh/Zhh)*(fvel-DVh/Zhh)) ! mm^6/m^3*(m/s)^2
+       if ((elev>=-90.d0) .and. (elev < 0.d0)) dDVh=Sum(zhh1*NN*(fvel*(-1.d0)-DVh/Zhh)*(fvel*(-1.d0)-DVh/Zhh))
+    end if
+    !if (Zhh>0.d0) dDVh=Sum(zhh1*NN*(fvel-DVh/Zhh)*(fvel-DVh/Zhh)) ! mm^6/m^3*(m/s)^2
     Ah=(10.d0/dlog(10.d0))*1.d-6*Sum(sigma_ext_h*NN) * 1.d+3  ! dB/km  Specific horizontal attenuation
     !
     zhh_d = zhh1
@@ -4478,7 +4608,7 @@
   !    
 #ifdef __PRELOAD_LUT__
   !subroutine make_lutfilename(isc, conf, inp_elev, temp, LutFileName)
-  subroutine make_lutfilename(isc, conf, inp_elev, temp, rho_hydro,LutFileName)!by oue 2017/07/17 for preloading LUTs od all densities
+  subroutine make_lutfilename(isc, conf, inp_elev, temp, rho_hydro,LutFileName)!by oue 2017/07/17 for preloading LUTs of all densities
   use crsim_mod
   use crsim_luts_mod
   Implicit None
@@ -5200,7 +5330,7 @@
             hydro%qnhydro(:,:,iz,ih) = 0.d0
           endwhere
           where(hydro%qnhydro(:,:,iz,ih) <= 0.d0)
-            !hydro%qhydro (:,:,iz,ih) =0.d0 !fixed by oue Apr 2020
+            !hydro%qhydro (:,:,iz,ih) =0.d0 !fixed by oue Apr. 2020
             hydro%qnhydro(:,:,iz,ih) =0.d0
           endwhere
         ELSE
@@ -5947,7 +6077,7 @@
   return
   end subroutine  get_hydro75_vars
   !
-  ! CM1 morrison by oue Apr 2020
+ ! CM1 morrison by oue Apr 2020
   subroutine get_hydro80_vars(conf,env,mp80,hydro)
   Use wrf_var_mod
   Use crsim_mod
@@ -6093,9 +6223,9 @@
     d_z=z-zc
     !
     ! AUG2019
-    !-- added for airborne radar 20190722
-    !if (ixc == -999)  d_x = 0.d0
-    !if (iyc == -999)  d_y = 0.d0
+    !-- added for airborne radar by oue 20190911
+    if (ixc == -999)  d_x = 0.d0
+    if (iyc == -999)  d_y = 0.d0
     !---
     !
     rr=dsqrt(d_x*d_x + d_y*d_y)
@@ -6103,11 +6233,11 @@
     if (rr>0.d0) then
       elev=datan(d_z/rr) * r2d ! the sign depends on d_z>0 or d_z<0
     else
-       !if (d_z>=0.d0) then  ! AUG2019
+       if (d_z>=0.d0) then  ! negative elevation by oue 20190911
           elev=90.d0
-       !else ! AUG2019
-          !elev=0.d0 ! this is the airborne case  AT ! AUG2019
-       !end if ! AUG2019
+       else ! negative elevation by oue 20190911
+          elev=-90.d0 ! negative elevation by oue 20190911
+       end if ! this is the airborne case  AT ! AUG2019
     endif
     !
     ! output radar range gate
@@ -6138,9 +6268,9 @@
     d_z=z-zc
     !
     ! AUG2019
-    !-- added for airborne radar 20190722  
-    !if (ixc == -999)  d_x = 0.d0
-    !if (iyc == -999)  d_y = 0.d0
+    !-- added for airborne radar by oue 20190911  
+    if (ixc == -999)  d_x = 0.d0
+    if (iyc == -999)  d_y = 0.d0
     !---
     ! output radar range gate
     rr=dsqrt(d_x*d_x + d_y*d_y + d_z*d_z)
@@ -6163,7 +6293,8 @@
   real*8                   :: d_x,d_y
     !
     ! 
-    if (elev==90.d0) then
+  !if (elev==90.d0) then
+  if ((elev==90.d0) .or. (elev==-90.d0)) then ! changed elev to abs(elev) by oue 20190911
       azim=0.d0
       go to 123
     endif
@@ -6190,22 +6321,25 @@
     d_y=y-yc
     !
 ! AUG2019
-!AT
-!    if (ixc == -999)  d_x = 0.d0
-!    if (iyc == -999)  d_y = 0.d0
-!    !
-!    if (ixc /= -999) then
-!      if (d_y < 0.d0) azim=270.d0
-!      if (d_y >= 0.d0) azim=90.d0
-!      go to 123
-!    end if
+!AT -- added for airborne radar by oue 20190911
+    !if (ixc == -999)  d_x = 0.d0
+    !if (iyc == -999)  d_y = 0.d0
     !
-!    if (iyc /= -999) then
-!      if (d_x < 0.d0) azim=180.d0
-!      if (d_x >= 0.d0) azim=0.d0
-!      go to 123
-!    end if
+    !if (ixc /= -999) then
+    if (ixc == -999) then
+      if (d_y < 0.d0) azim=270.d0
+      if (d_y >= 0.d0) azim=90.d0
+      go to 123
+    end if
     !
+    !if (iyc /= -999) then
+    if (iyc == -999) then
+      if (d_x < 0.d0) azim=180.d0
+      if (d_x >= 0.d0) azim=0.d0
+      go to 123
+    end if
+    !
+!------
     ! 
     if (d_x==0.d0) then
       if (d_y>=0) azim=90.d0
@@ -7313,6 +7447,7 @@
     !!!! In the particular model used, the vertical air motion is positive up and the particle fall velocity
     !!!! is positive down. In the simulated spectra we use ARM convection (toward the radar/ground is negative)
     Vd           = ww - (fvel(:)*dsin(elev*pi/180.d0)) !!!! the sign used here maybe model-dependent
+    if((elev>=-90.d0) .and. (elev<0.d0)) Vd = Vd * (-1.d0) ! added for negative elevation by oue 20190911
     
     !!!! if fall velocity is constant
     if(dabs(MaxVal(Vd)-MinVal(Vd))<0.01d0) then !if all Vd are constant
@@ -7356,6 +7491,14 @@
                            velo_st, turb_spectra, size(velo_st),             &
                            spectra_velo, noise_turb_spectra, snr_turb_spectra)
 
+!!!! added for negative elevation by oue 20190911
+    if((elev>=-90.d0) .and. (elev<0.d0)) then
+        spectra_velo       = spectra_velo(NFFT:1:-1)
+        noise_turb_spectra = noise_turb_spectra(NFFT:1:-1)
+        snr_turb_spectra   = snr_turb_spectra(NFFT:1:-1)
+    endif
+!!!!
+    
     spectra_example       (1:NFFT) = noise_turb_spectra
     velo_example          (1:NFFT) = spectra_velo
 

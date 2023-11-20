@@ -44,6 +44,7 @@
 !!  JUL 21 2017    -M.O     Incorporated  RAMS 2-moment microphysics.(8 categories) 
 !!  May 27 2018    -M.O    added new output for Doppler spectra simulation
 !!  Dec    2019    -A.T    added new polarimetric variable in the output: cross-correlation coefficient RHOhv 
+!!  Oct    2023    -M.O.   added new output for airborne radar simulation (Zsfc, Dopp_airborne)
 !!
 !!  *DESCRIPTION* 
 !!
@@ -70,7 +71,7 @@
 !!----------------------------------------------------------------------------------------------------------------- 
 !!-----------------------------------------------------------------------------------------------------------------
 !!
-subroutine WriteOutNetcdf_mp(iht,OutFileName,rmout,mout,qq,env,conf,lout,mpl,aero,arscl,mwr,spectra,status) !arscl&mwr are added by oue 2017.03.23, added spectra by oue in May 2018
+subroutine WriteOutNetcdf_mp(iht,OutFileName,rmout,mout,qq,env,conf,lout,mpl,aero,arscl,mwr,spectra,airborne,status) !arscl&mwr are added by oue 2017.03.23, added spectra by oue in May 2018
 Use netcdf
 Use crsim_mod
 Use postprocess_mod !added by oue 2017.03.23
@@ -89,6 +90,7 @@ type(aero_var),Intent(in)              :: aero
 type(arscl_var),Intent(in)             :: arscl !added by oue 2017.03.23
 type(mwr_var),Intent(in)               :: mwr !added by oue 2017.03.25
 type(spectra_var),Intent(in)           :: spectra !added by oue 2018.05.27
+type(airborne_var),Intent(in)          :: airborne !added by oue Oct 2023
 Integer,Intent(out)                    :: status
 !
 character(len=160)                     :: err_msg
@@ -125,6 +127,9 @@ integer  :: true_lwpID, mwr_lwpID, mwr_samplesID
 ! For Doppler spectra added by oue in May 2018
 Integer  :: nfftID
 integer  :: spectra_zhhID, spectra_zvhID, spectra_zvvID, velbinsID
+!--------------------------
+! For airborne added by oue in Oct 2023
+integer  :: Zsfc_oceanID, Zsfc_land_coarseID, Zsfc_land_flatID, DV_airborneID
 !--------------------------
 !
 integer  :: ncid
@@ -224,6 +229,14 @@ status = nf90_def_var(ncid, "velocity_bins",  nf90_float,(/nfftID/),velbinsID)
 status = nf90_def_var(ncid, "spectra_zhh",    nf90_float,(/nxID,nyID,nzID,nfftID/),spectra_zhhID)
 status = nf90_def_var(ncid, "spectra_zvh",    nf90_float,(/nxID,nyID,nzID,nfftID/),spectra_zvhID)
 status = nf90_def_var(ncid, "spectra_zvv",    nf90_float,(/nxID,nyID,nzID,nfftID/),spectra_zvvID)
+ENDIF
+!---------------------------
+! Airborne by oue in Oct 2023
+IF (conf%airborne==1) THEN 
+status = nf90_def_var(ncid, "Zsfc_Ocean",        nf90_float,(/nxID,nyID/),Zsfc_oceanID)
+status = nf90_def_var(ncid, "Zsfc_Land_Coarse",  nf90_float,(/nxID,nyID/),Zsfc_land_coarseID)
+status = nf90_def_var(ncid, "Zsfc_Land_Flat",    nf90_float,(/nxID,nyID/),Zsfc_land_flatID)
+status = nf90_def_var(ncid, "DV_airborne",       nf90_float,(/nxID,nyID,nzID/),DV_airborneID)
 ENDIF
 !---------------------------
 ! ARSCL added by oue 2017.03.23
@@ -471,6 +484,26 @@ IF (conf%spectraID>0) THEN
     status = nf90_put_att(ncid,spectra_zvvID,'_FillValue',-999.e0)
 ENDIF
 
+!------------------------------------------
+! Airborne by oue in Oct 2023
+IF (conf%airborne==1) THEN 
+    status = nf90_put_att(ncid,Zsfc_oceanID,'description','Surface reflectivity over ocean')
+    status = nf90_put_att(ncid,Zsfc_oceanID,'units','dBZ')
+    status = nf90_put_att(ncid,Zsfc_oceanID,'_FillValue',-999.e0)
+
+    status = nf90_put_att(ncid,Zsfc_land_coarseID,'description','Surface reflectivity over coarse land (i.e. wet snow)')
+    status = nf90_put_att(ncid,Zsfc_land_coarseID,'units','dBZ')
+    status = nf90_put_att(ncid,Zsfc_land_coarseID,'_FillValue',-999.e0)
+
+    status = nf90_put_att(ncid,Zsfc_land_flatID,'description','Surface reflectivity over flat land (i.e. flat road)')
+    status = nf90_put_att(ncid,Zsfc_land_flatID,'units','dBZ')
+    status = nf90_put_att(ncid,Zsfc_land_flatID,'_FillValue',-999.e0)
+
+    status = nf90_put_att(ncid,DV_airborneID,'description','Radial airmotion related to airborne moving')
+    status = nf90_put_att(ncid,DV_airborneID,'units','[m s]^-1')
+    status = nf90_put_att(ncid,DV_airborneID,'_FillValue',-999.e0)
+ENDIF
+
 !---------------------------
 ! ARSCL attributes added by oue 2017.03.23
 if ((conf%arsclID==1) .and. (conf%mplID>0) .and. (conf%ceiloID==1)) then 
@@ -674,11 +707,19 @@ Endif
    status = nf90_put_att(ncid, NF90_GLOBAL,'Nave_for_Doppler_spectra',spectra%Nave)
    end if
    !------------------------------------------
+   ! Airborne by oue in Oct 2023
+   if(conf%airborne==1) then
+   status = nf90_put_att(ncid, NF90_GLOBAL,'Pulse_length_m',conf%pulse_len)
+   status = nf90_put_att(ncid, NF90_GLOBAL,'Airborne_moving_speed_mps',conf%airborne_spd)
+   status = nf90_put_att(ncid, NF90_GLOBAL,'Airborne_moving_azimuth_direction',conf%airborne_azdeg)
+   status = nf90_put_att(ncid, NF90_GLOBAL,'Airborne_moving_elevation_direction',conf%airborne_eldeg)
+   end if
+   !------------------------------------------
    !
-   status = nf90_put_att(ncid, NF90_GLOBAL,'created_by','Aleksandra Tatarevic')
-   status = nf90_put_att(ncid,NF90_GLOBAL,'institute','http://wwww.clouds.mcgill.ca')
+   status = nf90_put_att(ncid, NF90_GLOBAL,'created_by','Aleksandra Tatarevic, Mariko Oue')
+   status = nf90_put_att(ncid,NF90_GLOBAL,'institute','Stony Brook University')
    status = nf90_put_att(ncid,NF90_GLOBAL,'websites',&
-        'https://www.bnl.gov/CMAS/cr-sim.php; https://you.stonybrook.edu/radar/research/radar-simulators/')
+        'https://www.bnl.gov/CMAS/cr-sim.php; http://radarscience.weebly.com/radar-simulators.html')
 !---------------------------------------------------------------------------------------
 
 status = nf90_enddef(ncid)
@@ -750,6 +791,14 @@ status =  nf90_put_var(ncid,velbinsID,    real(spectra%vel_bins))
 status =  nf90_put_var(ncid,spectra_zhhID,real(spectra%zhh_spectra_tot))
 status =  nf90_put_var(ncid,spectra_zvhID,real(spectra%zvh_spectra_tot))
 status =  nf90_put_var(ncid,spectra_zvvID,real(spectra%zvv_spectra_tot))
+end if
+!---------------------------
+! Airborne added by oue Oct 2023
+if(conf%airborne==1) then
+status =  nf90_put_var(ncid,Zsfc_oceanID,      real(airborne%Zsfc_ocean))
+status =  nf90_put_var(ncid,Zsfc_land_coarseID,real(airborne%Zsfc_land_coarse))
+status =  nf90_put_var(ncid,Zsfc_land_flatID,  real(airborne%Zsfc_land_flat))
+status =  nf90_put_var(ncid,DV_airborneID,     real(airborne%Dopp_airborne))
 end if
 !---------------------------
 ! ARSCL  added by oue 2017.03.23
@@ -856,6 +905,15 @@ status =  nf90_put_var(ncid,spectra_zvhID,real(spectra%zvh_spectra(:,:,:,:,iht))
 status =  nf90_put_var(ncid,spectra_zvvID,real(spectra%zvv_spectra(:,:,:,:,iht)))
 end if
 !---------------------------
+!------------------------------------------
+! Airborne by oue in Oct 2023
+if(conf%airborne==1) then
+status =  nf90_put_var(ncid,Zsfc_oceanID,        real(airborne%Zsfc_ocean))
+status =  nf90_put_var(ncid,Zsfc_land_coarseID,  real(airborne%Zsfc_land_coarse))
+status =  nf90_put_var(ncid,Zsfc_land_flatID,    real(airborne%Zsfc_land_flat))
+status =  nf90_put_var(ncid,DV_airborneID,       real(airborne%Dopp_airborne))
+end if
+!---------------------------
 !
 !---------------------------------------
 status =  nf90_put_var(ncid,elevID,real(rmout%elev))
@@ -896,7 +954,7 @@ return
 end subroutine WriteOutNetcdf_mp
 !
 !
-subroutine WriteOutNetcdf_rmp(iht,OutFileName,rmout,qq,env,conf,lout,mpl,aero,arscl,mwr,spectra,status) !arscl&mwr are added by oue 2017.03.23, added spectra by oue in May 2018
+subroutine WriteOutNetcdf_rmp(iht,OutFileName,rmout,qq,env,conf,lout,mpl,aero,arscl,mwr,spectra,airborne,status) !arscl&mwr are added by oue 2017.03.23, added spectra by oue in May 2018
 Use netcdf
 Use crsim_mod
 Use postprocess_mod !added by oue 2017.03.23
@@ -914,6 +972,7 @@ type(aero_var),Intent(In)              :: aero
 type(arscl_var),Intent(in)             :: arscl !added by oue 2017.03.23
 type(mwr_var),Intent(in)               :: mwr !added by oue 2017.03.25
 type(spectra_var),Intent(in)           :: spectra !added by oue 2018.05.27
+type(airborne_var),Intent(in)          :: airborne !added by oue Oct 2023
 Integer,Intent(out)                    :: status
 !
 character(len=160)                     :: err_msg
@@ -949,6 +1008,9 @@ integer  :: true_lwpID, mwr_lwpID, mwr_samplesID
 ! For Doppler spectra added by oue in May 2018
 Integer  :: nfftID
 integer  :: spectra_zhhID, velbinsID
+!--------------------------
+! For airborne added by oue in Oct 2023    
+integer  :: Zsfc_oceanID, Zsfc_land_coarseID, Zsfc_land_flatID, DV_airborneID
 !--------------------------
 !
 integer  :: ncid
@@ -1043,6 +1105,13 @@ status = nf90_def_var(ncid, "velocity_bins",  nf90_float,(/nfftID/),velbinsID)
 status = nf90_def_var(ncid, "spectra_zhh",    nf90_float,(/nxID,nyID,nzID,nfftID/),spectra_zhhID)
 ENDIF
 !---------------------------
+! Airborne by oue in Oct 2023
+IF (conf%airborne==1) THEN
+   status = nf90_def_var(ncid, "Zsfc_Ocean",        nf90_float,(/nxID,nyID/),Zsfc_oceanID)
+   status = nf90_def_var(ncid, "Zsfc_Land_Coarse",  nf90_float,(/nxID,nyID/),Zsfc_land_coarseID)
+   status = nf90_def_var(ncid, "Zsfc_Land_Flat",    nf90_float,(/nxID,nyID/),Zsfc_land_flatID)
+   status = nf90_def_var(ncid, "DV_airborne",       nf90_float,(/nxID,nyID,nzID/),DV_airborneID)
+ENDIF
 !---------------------------
 ! ARSCL added by oue 2017.03.23
 if ((conf%arsclID==1) .and. (conf%mplID>0) .and. (conf%ceiloID==1)) then 
@@ -1242,6 +1311,25 @@ IF (conf%spectraID>0) THEN
     status = nf90_put_att(ncid,spectra_zhhID,'description','copolar Doppler spectra for horizontal polarization')
     status = nf90_put_att(ncid,spectra_zhhID,'units','dB')
     status = nf90_put_att(ncid,spectra_zhhID,'_FillValue',-999.e0)
+ENDIF
+!---------------------------
+! Airborne by oue in Oct 2023
+IF (conf%airborne==1) THEN
+    status = nf90_put_att(ncid,Zsfc_oceanID,'description','Surface reflectivity over ocean')
+    status = nf90_put_att(ncid,Zsfc_oceanID,'units','dBZ')
+    status = nf90_put_att(ncid,Zsfc_oceanID,'_FillValue',-999.e0)
+
+    status = nf90_put_att(ncid,Zsfc_land_coarseID,'description','Surface reflectivity over coarse land (i.e. wet snow)')
+    status = nf90_put_att(ncid,Zsfc_land_coarseID,'units','dBZ')
+    status = nf90_put_att(ncid,Zsfc_land_coarseID,'_FillValue',-999.e0)
+
+    status = nf90_put_att(ncid,Zsfc_land_flatID,'description','Surface reflectivity over flat land (i.e. flat road)')
+    status = nf90_put_att(ncid,Zsfc_land_flatID,'units','dBZ')
+    status = nf90_put_att(ncid,Zsfc_land_flatID,'_FillValue',-999.e0)
+
+    status = nf90_put_att(ncid,DV_airborneID,'description','Radial airmotion related to airborne moving')
+    status = nf90_put_att(ncid,DV_airborneID,'units','[m s]^-1')
+    status = nf90_put_att(ncid,DV_airborneID,'_FillValue',-999.e0)
 ENDIF
 !---------------------------
 !---------------------------
@@ -1444,6 +1532,14 @@ endif
    status = nf90_put_att(ncid, NF90_GLOBAL,'Nave_for_Doppler_spectra',spectra%Nave)
    end if
    !------------------------------------------
+   ! Airborne by oue in Oct 2023
+   if(conf%airborne==1) then
+   status = nf90_put_att(ncid, NF90_GLOBAL,'Pulse_length_m',conf%pulse_len)
+   status = nf90_put_att(ncid, NF90_GLOBAL,'Airborne_moving_speed_mps',conf%airborne_spd)
+   status = nf90_put_att(ncid, NF90_GLOBAL,'Airborne_moving_azimuth_direction',conf%airborne_azdeg)
+   status = nf90_put_att(ncid, NF90_GLOBAL,'Airborne_moving_elevation_direction',conf%airborne_eldeg)
+   end if
+   !------------------------------------------
    !
    status = nf90_put_att(ncid, NF90_GLOBAL,'created_by','Aleksandra Tatarevic')
    status = nf90_put_att(ncid,NF90_GLOBAL,'institute','http://wwww.clouds.mcgill.ca')
@@ -1509,6 +1605,13 @@ status =  nf90_put_var(ncid,velbinsID,    real(spectra%vel_bins))
 status =  nf90_put_var(ncid,spectra_zhhID,real(spectra%zhh_spectra_tot))
 end if
 !---------------------------
+! Airborne added by oue Oct 2023
+if(conf%airborne==1) then
+status =  nf90_put_var(ncid,Zsfc_oceanID,      real(airborne%Zsfc_ocean))
+status =  nf90_put_var(ncid,Zsfc_land_coarseID,real(airborne%Zsfc_land_coarse))
+status =  nf90_put_var(ncid,Zsfc_land_flatID,  real(airborne%Zsfc_land_flat))
+status =  nf90_put_var(ncid,DV_airborneID,     real(airborne%Dopp_airborne))
+end if
 !---------------------------
 ! ARSCL  added by oue 2017.03.23
 if ((conf%arsclID==1) .and. (conf%mplID>0) .and. (conf%ceiloID==1)) then 

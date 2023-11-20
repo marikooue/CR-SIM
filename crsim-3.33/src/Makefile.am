@@ -30,6 +30,6 @@ AM_LDFLAGS =  $(NETCDF_FORTRAN_LDFLAGS) $(NETCDF_LDFLAGS)
 #bin_SCRIPTS = $(top_builddir)/bin/run_crsim.sh
 bin_PROGRAMS = $(top_builddir)/bin/crsim
 
-__top_builddir__bin_crsim_SOURCES = phys_param_mod.f90 crsim_luts_mod.f90 crsim_mod.f90 postprocess_mod.f90 wrf_var_mod.f90 wrf_rvar_mod.f90 crsim.f90 crsim_subrs.f90 crsim_subrs_postprocess.f90 ReadConfParameters.f90 ReadInpRAMSFile.f90 ReadInpWRFFile.f90 WriteOutNetcdf.f90
+__top_builddir__bin_crsim_SOURCES = phys_param_mod.f90 crsim_luts_mod.f90 crsim_mod.f90 postprocess_mod.f90 wrf_var_mod.f90 wrf_rvar_mod.f90 crsim.f90 crsim_subrs.f90 crsim_subrs_airborne.f90 crsim_subrs_postprocess.f90 ReadConfParameters.f90 ReadInpRAMSFile.f90 ReadInpWRFFile.f90 WriteOutNetcdf.f90
 
 CLEANFILES = *.mod *.o 

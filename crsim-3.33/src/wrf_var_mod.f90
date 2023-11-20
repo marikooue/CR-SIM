@@ -88,6 +88,9 @@ real*8,Dimension(:,:,:),Allocatable        :: xlong ! [deg] longitude; west is n
 !
 real*8,Dimension(:,:,:,:),Allocatable      :: tke   ! [m^2/s^2]  turbulence kinetic energy
 !
+real*8,Dimension(:,:,:),Allocatable      ::sfctemp ! [degC] surface temperature (SST over ocean)
+real*8,Dimension(:,:,:),Allocatable      ::sfcuu ! [m/s] surface u wind
+real*8,Dimension(:,:,:),Allocatable      ::sfcvv ! [m/s] surface v wind
 End Type wrf_var
 
 Type wrf_var_mp09
@@ -618,6 +621,7 @@ Allocate(str%qngraup(nx,ny,nz,nt))
 return
 end subroutine allocate_wrf_var_mp80
 !!
+!
 !
 !!
 subroutine initialize_wrf_var(str)

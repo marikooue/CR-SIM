@@ -60,9 +60,15 @@
   !! Nov    2018            -A.T.     The main code cleaned, description updated
   !! Dec    2018            -A.T.     Introduced progress messages in procentage
   !! Aug    2019            -A.T.     Conversion from real to double  precision variables everywhere
-  !! Jul,Aug   2019       -M.O,A.T.   Work on introducing airborne scanning observations    
-  !! Dec    2019            -A.T.     Added computation of cross-correlation coefficient rho_hv 
+  !! Jul,Aug   2019       -M.O,A.T.   Work on introducing airborne scanning observations
+  !! Sep    2019            -M.O.     Temporary incorporated calculations for negative elevation angles. 
+  !!                                  It is assumed that scattering properties at negative incident angle are 
+  !!                                  identical to those at the absolute value of the negative incident angle. 
+  !!                                  This assumtion can be applied only when mean canting angle (zenith angle) = 0.   
+  !! Dec    2019            -A.T.     Added computation of cross-correlation coefficient rho_hv
   !! Apr    2020            -M.O.     Added MP=80: CM1 with morrison 2 moment
+  !! Oct    2023            -M.O.     Added airborne radar simulation (Zsfc, Dopp_airborne)
+  !!
   !!
   !!
   !!  *DESCRIPTION* 
@@ -261,6 +267,9 @@
   real*8                          :: w_r ! [m/s] ! radial component of wind field 
   real*8                          :: dist_from_radar ! [m] distance from radar 
   Real*8,Dimension(:),Allocatable ::  spectra_bins,zhh_spectra,zvh_spectra,zvv_spectra ![mm^6 m^-3]
+  !--
+  !--!--Added by oue for Airborne surface backscatter
+  Type(airborne_var)              :: airborne
   !--
   
   Integer  :: psum_xy_tot,psum_xy,percentage,percentage_saved
@@ -791,7 +800,7 @@
     endif
     !
     !--------------------------------------------------------------
-        
+    
     
     !--------------------------------------------------------------
     !conf%MP_PHYSICS==20
@@ -993,7 +1002,7 @@
   
     !-------------------------------------------------------------
   
-  
+
     !============================================================
     !-- Initialize for Doppler spectra simulation
     call initialize_spectra_var(spectra,conf%freq,conf%ZMIN) ! parameter settings 
@@ -1010,6 +1019,16 @@
     end if
     !Allocate(spectra_bins(nfft),zhh_spectra(nfft),zvh_spectra(nfft),zvv_spectra(nfft))
     !spectra_bins=0.d0; zhh_spectra=0.d0; zvv_spectra=0.d0; zvh_spectra=0.d0
+    !============================================================
+    !============================================================
+    !-- Initialize for airborne 
+    !call initialize_airborne_var(airborne) ! parameter settings 
+    if(conf%airborne==1)then
+      airborne%nx=env%nx
+      airborne%ny=env%ny
+      airborne%nz=env%nz
+      call allocate_airborne_var(airborne)
+    end if
     !============================================================
     !-------------------------------------------------------------
     !
@@ -1166,13 +1185,14 @@
       ENDIF
     ENDIF
     !----------------------------------
+    ! by oue for negative elevation 20190911
     ! elevation is fixed if conf%elev >= 0
-    if (conf%elev >= 0.d0 ) rmout%elev=conf%elev
+    !if (conf%elev >= 0.d0 ) rmout%elev=conf%elev
 
     ! elevation is fixed if  -90.d0 <= conf%elev <= +90  ! alex
-    !if ( (conf%elev >= -90.d0 ) .and. (conf%elev <= 90.d0) ) then
-    !  rmout%elev = conf%elev
-    !endif
+    if ( (conf%elev >= -90.d0 ) .and. (conf%elev <= 90.d0) ) then
+      rmout%elev = conf%elev
+    endif
     !
     rmout%azim=-999.d0
   
@@ -1198,9 +1218,10 @@
             rr=-999.d0
   
   
-            if (conf%elev < 0.d0) then
+            ! by oue if negative elevation is considered 20190911
+            !if (conf%elev < 0.d0) then
             ! AUG2019
-            !if ( (conf%elev < -90.d0) .or. (conf%elev > 90.d0) )  then !AT 
+            if ( (conf%elev < -90.d0) .or. (conf%elev > 90.d0) )  then !AT 
               ! compute elevation and range of the pixel with coord x(ix),y(iy)
               ! and z(iz) relative to the radar origin
               call determine_elevation_and_range(env%x(ix),env%y(iy),env%z(ix,iy,iz),&
@@ -1302,6 +1323,7 @@
                 if (qq > 0.d0) then
                   ! AUG2019
                   elevx = elev ! radar looking up 
+                  if (elev < 0.d0 ) elevx = abs(elev) ! assuming spheroid, temporally incorporated. by oue 20190911 
                   !if (conf%airborne /= 0) elevx = MAX(0.d0, 90.d0 - dabs(elev))  ! radar looking down AT 
                   call make_lutfilename(iht, conf, elevx,env%temp(ix,iy,iz), lden(iden), LutFileName) !for preloading LUTs of all densities
                   !  
@@ -1417,17 +1439,19 @@
             !
             ! determine elevation
             ! AUG2019
-            !if ( (conf%elev < -90.d0) .or. (conf%elev > 90.d0) )  then !AT 
-            if (conf%elev < 0.d0) then
+            ! by oue if negative elevation is considered 20190911
+            if ( (conf%elev < -90.d0) .or. (conf%elev > 90.d0) )  then !AT 
+            !if (conf%elev < 0.d0) then
               call determine_elevation_and_range(env%x(ix),env%y(iy),env%z(ix,iy,iz),&
                                                  conf%ixc,conf%iyc,conf%zc,env%dx,env%dy,elev,rr)
               rmout%elev(ix,iy,iz)=elev
               rmout%range(ix,iy,iz)=rr
             endif
             ! 
-            if (elev >= 0.d0) then
+            ! by oue for negative elevation 20190911 
+            !if (elev >= 0.d0) then
             ! AUG2019
-            !if ( (elev >= -90.d0 ) .and. (elev <= 90.d0) ) then  !AT 
+            if ( (elev >= -90.d0 ) .and. (elev <= 90.d0) ) then  !AT 
               !wstart3 = omp_get_wtime()
               if (rr<0.d0) then
                 call determine_range(env%x(ix),env%y(iy),env%z(ix,iy,iz),conf%ixc,conf%iyc,conf%zc,env%dx,env%dy,rr)
@@ -1438,10 +1462,17 @@
               call determine_azimuth(env%x(ix),env%y(iy),conf%ixc,conf%iyc,env%dx,env%dy,rmout%elev(ix,iy,iz),azim)
               rmout%azim(ix,iy,iz)=azim    
               !
+              !------------------------------------------------------
+              ! Airborne radial velocity
+              if (conf%airborne==1) then
+                 call airborne_radial_velocity(conf,rmout%elev(ix,iy,iz),rmout%azim(ix,iy,iz),&
+                      airborne%Dopp_airborne(ix,iy,iz))
+              end if
+              !------------------------------------------------------
               ! AUG2019
-              ! at this point elev and rmout%elev(ix,iy,iz) are equal 
-              ! define elevx (the lut elevation angle from 0 to 90
-              elevx = elev ! radar looking up 
+              !! at this point elev and rmout%elev(ix,iy,iz) are equal 
+              !! define elevx (the lut elevation angle from 0 to 90
+              !elevx = elev ! radar looking up
               !if (conf%airborne /= 0) elevx = MAX(0.d0, 90.d0 - dabs(elev)) ! radar looking down AT
               ! 
               uu=env%u(ix,iy,iz)
@@ -1492,8 +1523,15 @@
                 !wstart3 = omp_get_wtime()
                 call nullify_rmrad_var(rmrad_vec(tid))
                 IF (conf%radID/=1)  call nullify_mrad_var(mrad_vec(tid))
-                ! 
-                call determine_sw_contrib_terms(rr,elev,azim,uu,vv,ww,tke,conf%sigma_r,conf%sigma_theta,&
+                ! AUG2019
+                ! AT we shoud check all eqs for downlooking  radar
+                ! but likely  elev should be used (and not abs(elev) or elevx)
+                ! MO: I think that we should use abs(elev) for downlooking (negative elevations)
+                ! because this subroutine below includes sin(elev) to calculate SW
+                elevx = elev ! radar looking up
+                if( (elev >= -90.d0 ) .and. (elev <= 90.d0) ) elevx = abs(elev) ! by for negative elevation oue 20190911 
+                !call determine_sw_contrib_terms(rr,elev,azim,uu,vv,ww,tke,conf%sigma_r,conf%sigma_theta,&
+                call determine_sw_contrib_terms(rr,elevx,azim,uu,vv,ww,tke,conf%sigma_r,conf%sigma_theta,&
                                                 env%Ku(ix,iy,iz),env%Kv(ix,iy,iz),env%Kw(ix,iy,iz),&
                                                 sw_t2,sw_s2,sw_v2)
     
@@ -1519,6 +1557,11 @@
                 if((conf%elev>89.d0) .and. (conf%elev<91.d0)) then 
                   dist_from_radar = dabs( env%z(ix,iy,iz) - conf%zc ) 
                 endif
+                !-- for negative elevation by oue 20190911
+                if( (conf%elev < -89.d0 ) .and. (conf%elev > -90.d0) ) then
+                      dist_from_radar = dabs( env%z(ix,iy,iz) - conf%zc )
+                endif
+                !--
                 !wend3 = omp_get_wtime()
                 !write(*,*) 'Part 2 - 1 - 2 Time : ',  wend3 - wstart3
                 !wstart3 = omp_get_wtime() AT April 2019
@@ -1556,7 +1599,8 @@
                         (conf%MP_PHYSICS==80)) then !Modified by oue 2016/09/19, 2017/07/17 2018/06/17 ICON RAMS SAM, Apr 2020 CM1
                       !AUG2019
                       ! AT NOTE: two parameteres relative for airborne obs enter
-                      ! into processing subrs: conf% airborne and elevx
+                       ! into processing subrs: conf% airborne and elevx
+                      elevx = elev ! added by oue 20190911 
                       call processing(iht, conf,elevx,env%w(ix,iy,iz),&
                                       env%temp(ix,iy,iz),env%rho_d(ix,iy,iz), env%rho_d(ix,iy,1), &
                                       hydro%qhydro(ix,iy,iz,iht),hydro%qnhydro(ix,iy,iz,iht),&
@@ -1659,6 +1703,11 @@
                       rmout%DVh(ix,iy,iz,iht)=rmrad_vec(tid)%dvh(iht)/rmrad_vec(tid)%zhh(iht) ! refl. weigh. velocity (def: w=0, elev=90 deg)
                       ! 
                       rmout%Dopp90(ix,iy,iz,iht)=rmrad_vec(tid)%Dopp(iht)/rmrad_vec(tid)%zhh(iht)
+                      !- added by oue for negative elevation 20190911
+                      if((elev>=-90.d0) .and. (elev<0.d0)) then
+                      rmout%Dopp90(ix,iy,iz,iht)=rmrad_vec(tid)%Dopp(iht)/rmrad_vec(tid)%zhh(iht) * (-1.d0)
+                      endif
+                      !--
                       rmout%dDVh90(ix,iy,iz,iht)=dsqrt(rmrad_vec(tid)%d_dvh(iht)/rmrad_vec(tid)%zhh(iht))
                       rmout%Ah(ix,iy,iz,iht)  =rmrad_vec(tid)%Ah(iht)
                       !
@@ -1756,12 +1805,20 @@
                   rmout%Zhh_tot(ix,iy,iz)=work
                   rmout%Dopp_tot(ix,iy,iz)=( uu*dcos(azim*d2r) + vv*dsin(azim*d2r) ) * dcos(elev*d2r)  +&
                                              dsin(elev*d2r) * Sum(rmrad_vec(tid)%Dopp)/rmout%Zhh_tot(ix,iy,iz)
+                  if(conf%airborne==1) then !airborne simulation Oct 2023
+                     rmout%Dopp_tot(ix,iy,iz)=rmout%Dopp_tot(ix,iy,iz)+airborne%Dopp_airborne(ix,iy,iz)
+                  end if
                   sw_h2=dsin(elev*d2r)*dsin(elev*d2r) * (Sum(rmrad_vec(tid)%d_dvh)/rmout%Zhh_tot(ix,iy,iz))
                   rmout%dDVh_tot(ix,iy,iz)=dsqrt( sw_h2)
                   rmout%SWt_tot(ix,iy,iz)=dsqrt(sw_h2 + sw_t2 + sw_s2 + sw_v2)
                   rmout%DVh_tot(ix,iy,iz)=Sum(rmrad_vec(tid)%dvh)/rmout%Zhh_tot(ix,iy,iz)
                   !
                   rmout%Dopp90_tot(ix,iy,iz)=Sum(rmrad_vec(tid)%Dopp)/rmout%Zhh_tot(ix,iy,iz)
+                  !- added by oue for negative elevation 20190911
+                  if((elev>=-90.d0) .and. (elev<0.d0)) then
+                      rmout%Dopp90_tot(ix,iy,iz)=Sum(rmrad_vec(tid)%Dopp)/rmout%Zhh_tot(ix,iy,iz) * (-1.d0)
+                  endif
+                  !-                                                                                          
                   rmout%dDVh90_tot(ix,iy,iz)=dsqrt(Sum(rmrad_vec(tid)%d_dvh)/rmout%Zhh_tot(ix,iy,iz))
                   !
                   rmout%Ah_tot(ix,iy,iz)  =Sum(rmrad_vec(tid)%Ah)
@@ -1948,8 +2005,27 @@
               end if
             ENDIF ! if(elev >= 0.d0)
   
- Deallocate(spectra_bins,zhh_spectra,zvh_spectra,zvv_spectra)   
+            Deallocate(spectra_bins,zhh_spectra,zvh_spectra,zvv_spectra)   
+
           enddo ! iz
+
+
+          !------------------------------------------------------
+          !------------------------------------------------------
+          ! Airborne backscatter
+          if (conf%airborne==1) then
+             if((conf%iz_start==1) .and. (conf%zc>0)) then
+                call surface_backscatter_ocean(conf%freq,rmout%elev(ix,iy,1),conf%pulse_len,&
+                     env%sfcwspd(ix,iy),env%sfctemp(ix,iy),airborne%Zsfc_ocean(ix,iy))
+
+                call surface_backscatter_land(conf%freq,rmout%elev(ix,iy,1),conf%pulse_len,&
+                     airborne%Zsfc_land_coarse(ix,iy),airborne%Zsfc_land_flat(ix,iy))
+             end if
+          end if
+          !------------------------------------------------------
+          !------------------------------------------------------
+
+
           !call system_clock ( clck_counts_end1, clck_rate1 )
           !write (*, *) 'time=', (clck_counts_end1 - clck_counts_beg1) / real (clck_rate1)
           !write(*,*) ''
@@ -2149,6 +2225,13 @@
     !------------------------------------------------------------------------------------
     ! write the main output file and the output files for each hydrometeor type
     !
+    !--- get original xscene and yscene for CM1 (MP=80): added by oue CM1 Apr 2020
+    !if (conf%MP_PHYSICS==80) then
+    !   env%x(1:env%nx)=wrf%xlong(conf%ix_start:conf%ix_end,1,1)
+    !   env%y(1:env%ny)=wrf%xlat(1,conf%iy_start:conf%iy_end,1)
+    !endif
+    !---
+  
     call get_filename(Trim(conf%WRFInputFile),filename)
     conf%WRFInputFile=Trim(filename)
     !
@@ -2211,7 +2294,7 @@
         enddo
       endif
       qqc=qqc*env%rho_d ! [kg/m3] water content
-  
+
       IF (conf%radID==1) THEN
         write(*,*) ''
         write(*,*) 'hydrometeor ',Trim(hstring)
@@ -2223,7 +2306,7 @@
           write(*,*) ''
         endif 
         
-        call WriteOutNetcdf_rmp(iht,Trim(OutFileName),rmout,qqc,env,conf,lout,mpl,aero,arscl,mwr,spectra,status)!arscl&mwr are added by oue 2017.03.23, spectra added by oue in May 2018
+        call WriteOutNetcdf_rmp(iht,Trim(OutFileName),rmout,qqc,env,conf,lout,mpl,aero,arscl,mwr,spectra,airborne,status)!arscl&mwr are added by oue 2017.03.23, spectra added by oue in May 2018, airborne added by oue Oct 2023
       ELSE 
         write(*,*) ''
         write(*,*) 'hydrometeor ',Trim(hstring)
@@ -2237,7 +2320,7 @@
           write(*,*) ''
         endif
     
-        call WriteOutNetcdf_mp(iht,Trim(OutFileName),rmout,mout,qqc,env,conf,lout,mpl,aero,arscl,mwr,spectra,status) !arscl&mwr are added by oue 2017.03.23, spectra added by oue in May 2018
+        call WriteOutNetcdf_mp(iht,Trim(OutFileName),rmout,mout,qqc,env,conf,lout,mpl,aero,arscl,mwr,spectra,airborne,status) !arscl&mwr are added by oue 2017.03.23, spectra added by oue in May 2018, airborne added by oue Oct 2023 
       ENDIF
       Deallocate(qqc)
     enddo ! iht
@@ -2259,6 +2342,12 @@
     !deallocate spectra vars
     IF (conf%spectraID==1) THEN
       call deallocate_spectra_var(spectra,conf%radID)
+    ENDIF
+    !
+    !== Vars for airborne
+    !deallocate spectra vars
+    IF (conf%airborne==1) THEN
+      call deallocate_airborne_var(airborne)
     ENDIF
     !
     !== Vars for post processing====
@@ -2383,7 +2472,7 @@
         Endif
         ! 
         write(*,*) '*****************'
-        write(*,*) 'ConfigInpFile',trim(ConfigInpFile)
+        write(*,*) 'ConfigInpFile=',trim(ConfigInpFile)
         write(*,*) 'conf%WRFInputFile=',trim(conf%WRFInputFile) 
         write(*,*) 'conf%WRFmpInputFile=',trim(conf%WRFmpInputFile)
         write(*,*) 'conf%OutFile=',trim(conf%OutFile) 
