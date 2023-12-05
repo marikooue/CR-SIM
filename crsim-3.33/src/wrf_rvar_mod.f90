@@ -69,9 +69,9 @@ real*4,Dimension(:,:,:),Allocatable        :: xlong ! [deg] longitude; west is n
 !
 real*4,Dimension(:,:,:,:),Allocatable      :: tke   ! [m^2/s^2]  turbulence kinetic energy
 
-real*4,Dimension(:,:,:),Allocatable      :: sst ! [] Sear surface temperature
-real*4,Dimension(:,:,:),Allocatable      :: usfc  ! [m/s] surface u
-real*4,Dimension(:,:,:),Allocatable      :: vsfc  ! [m/s] surface v
+real*4,Dimension(:,:,:),Allocatable      :: sfctemp ! [K] Sea surface temperature
+real*4,Dimension(:,:,:),Allocatable      :: sfcuu  ! [m/s] surface u
+real*4,Dimension(:,:,:),Allocatable      :: sfcvv  ! [m/s] surface v
 
 !
 End Type wrf_rvar
@@ -338,6 +338,11 @@ Allocate(str%qvapor(nx,ny,nz,nt))
 Allocate(str%xlat(nx,ny,nt))
 Allocate(str%xlong(nx,ny,nt))
 Allocate(str%tke(nx,ny,nz,nt))
+!
+! added for surface backscatter Oct 2023
+Allocate(str%sfctemp(nx,ny,nt))
+Allocate(str%sfcuu(nx,ny,nt))
+Allocate(str%sfcvv(nx,ny,nt))
 !
 return
 end subroutine allocate_wrf_rvar
@@ -639,6 +644,11 @@ str%xlat=m999
 str%xlong=m999
 str%tke=m999
 !
+! added for surface backscatter Oct. 2023
+str%sfctemp=m999
+str%sfcuu=m999
+str%sfcvv=m999
+!
 return
 end subroutine initialize_wrf_rvar
 !!
@@ -882,6 +892,11 @@ Deallocate(str%qvapor)
 Deallocate(str%xlat)
 Deallocate(str%xlong)
 Deallocate(str%tke)
+!
+!added for surface backscatter Oct. 2023
+Deallocate(str%sfctemp)
+Deallocate(str%sfcuu)
+Deallocate(str%sfcvv)
 !
 str%nt=0
 str%nx=0 ; str%nxp1=0

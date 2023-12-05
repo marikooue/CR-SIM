@@ -1831,7 +1831,7 @@
   subroutine get_env_vars_sam(conf,wrf,env)
   Use wrf_var_mod
   Use crsim_mod
-  Use phys_param_mod, ONLY: Rd, eps,p0,cp,grav
+  Use phys_param_mod, ONLY: Rd, eps,p0,cp,grav, m999, T0K
   Implicit None
   !
   Type(conf_var),Intent(In)                  :: conf
@@ -1845,6 +1845,7 @@
   Real*8,Dimension(:,:,:),Allocatable        :: Ku,Kv,Kw
   
   Integer            :: ix,iy,iz,izmin,izmax,idz
+  Integer                                    :: lowestiz
     !-------------------------------------------------------------
     !
     ix1=1 ; ix2=env%nx
@@ -1943,6 +1944,20 @@
     env%dx = 1./wrf%dx(it)
     env%dy = 1./wrf%dy(it)
     !--
+    !-------------------------  
+    ! get surface temperature and wind speed
+    lowestiz = 1;
+    env%sfctemp(1:env%nx,1:env%ny)=wrf%temp(ix1:ix2,iy1:iy2,lowestiz,it) -T0K;
+    do ix=ix1,ix2
+       do iy=iy1,iy2
+          env%sfcwspd(ix-ix1+1,iy-iy1+1)=sqrt((uu(ix,iy,lowestiz)**2.d0)+(vv(ix,iy,lowestiz)**2.d0)) ;
+          !mask land  
+          if(wrf%hgtm(lowestiz)>0.0) then
+             env%sfctemp(ix-ix1+1,iy-iy1+1)=m999
+             env%sfcwspd(ix-ix1+1,iy-iy1+1)=m999
+          end if
+       end do
+    end do
     
     !---------------------------------------------------------------------------------
     Deallocate(ww,uu,vv,Kw,Ku,Kv)
@@ -2402,7 +2417,7 @@
   subroutine get_env_vars_cm1(conf,wrf,env)
   Use wrf_var_mod
   Use crsim_mod
-  Use phys_param_mod, ONLY: Rd, eps,p0,cp,grav
+  Use phys_param_mod, ONLY: Rd, eps,p0,cp,grav, m999, T0K
   Implicit None
   !
   Type(conf_var),Intent(In)                  :: conf
@@ -2416,6 +2431,7 @@
   Real*8,Dimension(:,:,:),Allocatable        :: Ku,Kv,Kw
   
   Integer            :: ix,iy,iz,izmin,izmax,idz
+  Integer                                    :: lowestiz
     !-------------------------------------------------------------
     !
     ix1=1 ; ix2=env%nx
@@ -2514,6 +2530,21 @@
     env%dx = 1./wrf%dx(it)
     env%dy = 1./wrf%dy(it)
     !
+    !-------------------------  
+    ! get surface temperature and wind speed
+    lowestiz = 1;
+    env%sfctemp(1:env%nx,1:env%ny)=wrf%temp(ix1:ix2,iy1:iy2,lowestiz,it) -T0K;
+    do ix=ix1,ix2
+       do iy=iy1,iy2
+          env%sfcwspd(ix-ix1+1,iy-iy1+1)=sqrt((uu(ix,iy,lowestiz)**2.d0)+(vv(ix,iy,lowestiz)**2.d0)) ;
+          !mask land  
+          if(wrf%hgtm(lowestiz)>0.0) then
+             env%sfctemp(ix-ix1+1,iy-iy1+1)=m999
+             env%sfcwspd(ix-ix1+1,iy-iy1+1)=m999
+          end if
+       end do
+    end do
+    
     
     !---------------------------------------------------------------------------------
     Deallocate(ww,uu,vv,Kw,Ku,Kv)

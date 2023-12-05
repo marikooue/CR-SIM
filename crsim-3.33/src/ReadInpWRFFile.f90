@@ -156,6 +156,7 @@
   Character(len=nf90_max_name), Allocatable , Dimension(:) :: var_names
   Character(len=nf90_max_name)                             :: name, err_msg
   Real*8 :: dx,dy !added by oue
+  Real*4, Allocatable , Dimension(:,:,:) :: landmask
     !
     !
     ! define strr dimensions
@@ -170,6 +171,8 @@
     ! allocate strr vars
     call allocate_wrf_rvar(strr)
     call initialize_wrf_rvar(strr)
+    !
+    Allocate(landmask(strr%nx,strr%ny,strr%nt))
     !
     status=  nf90_open(Trim(InpFile), NF90_NOWRITE, ncid)
     If (status/=0) Then
@@ -325,6 +328,39 @@
         err_msg = 'Error in my_nf90_get_var: tke_pbl'  !(added by DW)
         Goto 999                                       !(added by DW)
       End If                                         !(added by DW)
+      !
+      Case ('SSTSK')
+      status=nf90_get_var(ncid,iVar,strr%sfctemp)
+      str%sfctemp=dble(strr%sfctemp)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: sfctemp'
+        Goto 999
+      End If
+      !
+      Case ('U10')
+      status=nf90_get_var(ncid,iVar,strr%sfcuu)
+      str%sfcuu=dble(strr%sfcuu)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: sfuu (U10)'
+        Goto 999
+      End If
+      !
+      Case ('V10')
+      status=nf90_get_var(ncid,iVar,strr%sfcvv)
+      str%sfcvv=dble(strr%sfcvv)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: sfcvv (V10)'
+        Goto 999
+      End If
+      !
+      Case ('XLAND')
+      status=nf90_get_var(ncid,iVar,landmask)
+      str%topo=dble(landmask(:,:,1))
+      deallocate(landmask)
+      If (status/=0) Then
+        err_msg = 'Error in my_nf90_get_var: XLAND'
+        Goto 999
+      End If
       !
       End Select
       !

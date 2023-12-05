@@ -5004,7 +5004,7 @@
   subroutine get_env_vars(conf,wrf,env)
   Use wrf_var_mod
   Use crsim_mod
-  Use phys_param_mod, ONLY: Rd, eps
+  Use phys_param_mod, ONLY: Rd, eps, m999, T0K
   Implicit None
   !
   Type(conf_var),Intent(In)                  :: conf
@@ -5018,6 +5018,8 @@
   Real*8,Dimension(:,:,:),Allocatable        :: Ku,Kv,Kw
   Real*8                                     :: hres
   Integer                                    :: ix,iy,iz
+  Integer                                    :: lowestiz
+  Real*8                                     :: sfcheight
     !-------------------------------------------------------------
     ! 
     ix1=1 ; ix2=env%nx
@@ -5105,6 +5107,51 @@
     env%Ku(1:env%nx,1:env%ny,1:env%nz)=Ku(ix1:ix2,iy1:iy2,iz1:iz2)
     env%Kv(1:env%nx,1:env%ny,1:env%nz)=Kv(ix1:ix2,iy1:iy2,iz1:iz2)
     
+    !-------------------------              
+    ! get surface temperature and wind speed
+    env%sfctemp(1:env%nx,1:env%ny) = wrf%sfctemp(ix1:ix2,iy1:iy2,it) -T0K;
+    lowestiz = 1;
+    if(wrf%geop_height(1,1,1,1) > wrf%geop_height(1,1,wrf%nz,1)) lowestiz = wrf%nz;
+    do ix=ix1,ix2
+       do iy=iy1,iy2
+          env%sfcwspd(ix-ix1+1,iy-iy1+1)=sqrt((wrf%sfcuu(ix,iy,it)**2.d0)+(wrf%sfcvv(ix,iy,it)**2.d0)) ;
+          !mask land
+          sfcheight = wrf%topo(ix,iy)
+          if(wrf%topo(ix,iy)<-880.0) sfcheight = gheight(ix,iy,lowestiz)
+          if(sfcheight>0.0) then
+             env%sfctemp(ix-ix1+1,iy-iy1+1)=m999
+             env%sfcwspd(ix-ix1+1,iy-iy1+1)=m999
+          end if
+       end do
+    end do
+    if(MaxVal(env%sfctemp)<0.d0) then ! if no surface data, use the lowest layer from 3D vaiables
+       env%sfctemp(1:env%nx,1:env%ny)=wrf%temp(ix1:ix2,iy1:iy2,lowestiz,it) -T0K;
+       do ix=ix1,ix2
+          do iy=iy1,iy2
+             !mask land
+             sfcheight = wrf%topo(ix,iy)
+             if(wrf%topo(ix,iy)<-880.0) sfcheight = gheight(ix,iy,lowestiz)
+             if(sfcheight>0.0) then
+                env%sfctemp(ix-ix1+1,iy-iy1+1)=m999
+             end if
+          end do
+       end do
+    end if
+    if(MaxVal(env%sfcwspd)<=-888.d0) then ! if no surface data, use the lowest layer from 3D vaiables
+       lowestiz = 1;
+       if(wrf%geop_height(1,1,1,1) > wrf%geop_height(1,1,wrf%nz,1)) lowestiz = wrf%nz;
+       do ix=ix1,ix2
+          do iy=iy1,iy2
+             env%sfcwspd(ix-ix1+1,iy-iy1+1)=sqrt((uu(ix,iy,lowestiz)**2.d0)+(vv(ix,iy,lowestiz)**2.d0)) ;
+             !mask land
+             sfcheight = wrf%topo(ix,iy)
+             if(wrf%topo(ix,iy)<-880.0) sfcheight = gheight(ix,iy,lowestiz)
+             if(sfcheight>0.0) then
+                env%sfcwspd(ix-ix1+1,iy-iy1+1)=m999
+             end if
+          end do
+       end do
+    end if
     !---------------------------------------------------------------------------------
     Deallocate(xtrack,ytrack,gheight,ww,uu,vv,Kw,Ku,Kv)
     !---------------------------------------------------------------------------------
