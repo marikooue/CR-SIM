@@ -1,0 +1,23 @@
+######################################################
+# Test runs for crsim
+# Created by M Oue 2023.08.16
+# Updated by M Oue 2024.08.20
+######################################################
+
+To excute test runs with scripts, please dpwnload sample files from:
+
+https://doi.org/10.5281/zenodo.13346381
+
+The dataset includes:
+crsimtest1_inp_MP10.tar.gz includes input files for Test-1 with the microphysical option MP10 (WRF Morrison microphysics)
+crsimtest2_inp_MP50.tar.gz includes input files for Test-2 with the microphysical option MP50 (WRF P3 microphysics)
+crsimtest3_inp_MP40.tar.gz includes input files for Test-3 with the microphysical option MP40 (RAMS Morrison microphysics)
+crsimtest1_out_ref_MP10.tar.gz includes example output files for Test-1 with the microphysical option MP10 (WRF Morrison microphysics)
+crsimtest2_out_ref _MP50.tar.gz includes example output files for Test-2 with the microphysical option MP50 (WRF P3 microphysics)
+crsimtest3_out_ref _MP40.tar.gz includes example output files for Test-3 with the microphysical option MP40 (RAMS Morrison microphysics)
+
+1) The sample input files (crsimtest*_inp_*tar.gz) must be untared under ./inp
+The input model data and configuration files will be under [model name]_MP[microphysics option]/. 
+
+2) The sample output files (crsimtest*_out_ref_*tar.gz) must be untared under ./out_ref
+
