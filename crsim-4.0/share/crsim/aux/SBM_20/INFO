@@ -1,0 +1,7 @@
+REQUIRED ASCII FILES FOR MP_PHYSICS=20 (updated in v4.0 to43 bins):
+
+bulkdens.asc_s_0_03_0_9
+bulkradii.asc_s_0_03_0_9
+masses.asc
+termvels.asc
+

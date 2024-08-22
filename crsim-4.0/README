@@ -1,0 +1,107 @@
+CR-SIM Cloud Resolving Model (CRM) Radar SIMulator Software v 4.0
+
+Stony Brook University - Brookhaven National Laboratory
+Radar Science Group (radarscience.weebly.com)
+mariko.oue@stonybrook.edu
+pavlos.kollias@mcgill.ca
+
+crsim version 4.0  Jul 2023
+
+Major updates for version 4.0 from 3.33:
+
+- Fixed bug in Doppler spectrum with computation
+- Changed the number of bins for WRF SBM option (33 -> 43)
+- Incorporated surface backscatter over ocean and land
+- Incorporated water vapor attenuation
+
+Earlier versions:
+
+crsim version 3.3  Sep 03 2019 (publicly released)
+crsim version 3.2  Feb 12 2019 (publicly released)
+crsim version 3.1  Mar xx 2018 (publicly released)
+crsim version 3.0  Aug 22 2017 (publicly released)
+crsim version 2.3  Jul 17 2017 (locally released)
+crsim version 2.2  May 12 2016  (locally released)
+crsim version 2.1  Apr  25 2016 (locally released)
+crsim version 2.0  Feb  23 2016 (publicly released)
+crsim version 1.2  Jan  16 2016 (locally released )
+crsim version 1.1  Sep  23 2015 (locally released )
+crsim version 1.0  July 01 2015 (publicly released)
+
+This directory contains the "CR-SIM" software written in FORTRAN. 
+
+The idea behind CR-SIM is to create an accurate radar forward model operator
+ consistent with several CRM microphysics that converts the model variables into the
+ form of radar observations and thus to enable the direct comparison between 
+ CRM output and radar observations. The CR-SIM can be applied in order to 
+ reproduce characteristic (polarimetric) signatures commonly found in 
+ (polarimetric) radar observations and examine the performance of different
+  microphysical schemes and also to examine the assumptions related to scattering
+ characteristics of observed cloud and precipitation systems. 
+
+ The current version of CR-SIM uses input from the following high resolution CRM and
+ corresponding microphysical schemes.
+-------------------------------------------------------------------------------------
+CRM					|Microphysics scheme (M represents moment)
+=====================================================================================
+Weather Research and Forecasting (WRF)	|Morrison 2-M scheme (Morrison et al., 2005)
+                                       	|Milbrandt and Yau multi-M scheme
+					| (Milbrandt and Yau, 2005a, b)
+				       	|Thompson 1- and 2-M scheme
+					| (Thompson et al., 2008)
+				       	|Predicted particle properties (P3) scheme
+					| (Morrison and Milbrandt, 2015)
+				       	|Spectral bin microphysics
+					| (Fan et al., 2012)
+-------------------------------------------------------------------------------------
+ICOsahedral Non-hydrostatic general    	|Seifert and Beheng 2-M scheme
+circulation model (ICON)	       	| (Seifert and Beheng, 2006; Seifert, 2008)
+-------------------------------------------------------------------------------------
+Regional Atmospheric Modeling System	| 2-M scheme (Cotton et al., 2003)
+ (RMS)	 	     	      		|
+-------------------------------------------------------------------------------------
+System for Atmospheric Modeling		|Tel Aviv University 2-M bin microphysics
+ (SAM)       	   	       		|(Tzivion et al.1987; Feingold et al., 1996)
+ 					|Morrison 2-M scheme (Morrison et al., 2005)
+=====================================================================================
+
+ The CR-SIM can be easily configured to work on other models and microphysics schemes. 
+
+The CR-SIM employs the T-matrix method for computation of scattering characteristics
+ for cloud water, cloud ice, rain, snow, graupel and hail and allows the specifications
+ of the following radar frequencies for scattering calculations: 3 GHz, 5.5 GHz, 9.5 GHz, 
+ 35 GHz and 94 GHz. 
+
+Given the particles size distributions (explicit or reconstructed from the provided PSD 
+ moments),polarimetric radar variables can be calculated if the scattering amplitudes 
+ are known. The complex scattering amplitudes are pre-computed and stored as look-up tables
+ (LUTs) for equally spaced particle sizes using the Mishchenko's T-matrix code for a non-spherical
+ particle at a fixed orientation (Mishchenko, 2000) and for elevation angles from 0° to 90°
+ with a spacing of 1°, for specified radar frequencies, temperatures and different possibilities
+ of particles densities and aspect ratios. 
+
+It is worth noting that some particle characteristics needed to simulate polarimetric variables
+ such as the shape or the statistical properties of the particle orientations are not explicitly
+ specified in the WRF. Thus certain assumptions have to be made, based on much available information
+ as possible.  For example, the mean canting angles of all hydrometeors are assumed to be 0°. This
+ assumption enables the use of Ryzkov et al. (2010) formulations for computation of polarimetric 
+ variables and especially the use of simple expressions for the angular moments, which in turn make
+ possible that the width of 2D Gaussian distribution of canting angle that is different for various
+ hydrometeor species can be specified. 
+
+The polarimetric variables simulated include reflectivity at vertical and horizontal polarization,
+ differential reflectivity, specific differential phase, cross-correlation coefficient,
+ specific attenuation at horizontal and vertical polarization, specific differential attenuation, 
+ and linear depolarization ratio. Also simulated are the vertical reflectivity weighted velocity,
+ mean Doppler velocity and spectrum width. The computation of fall velocities is consistent to the 
+ computational method used in the specific microphysical package. 
+
+The CR-SIM is licensed under GNU GENERAL PUBLIC LICENSE - see LICENSE.
+
+If you use the CR-SIM software package results  for publication, an acknowledgment or  reference
+would be appreciated. 
+
+If you have any comments, suggestions for improvements, bug fixes or you need any help when using
+CR-SIM, please contact us (mariko.oue@stonybrook.edu,  pavlos.kollias@stonybrook.edu)
+
+

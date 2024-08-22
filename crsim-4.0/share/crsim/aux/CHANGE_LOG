@@ -1,0 +1,37 @@
+
+Mar    2024: updated the ASCII files for  MP_PHYSICS=20: SBM_20/ to increase the number of bins to 43
+
+Nov    2018: added the look up tables for snow_ar.0.6 for densities of 10 and 50 kg m-3 
+
+Mar 17 2018: added the look up tables for all graupel categories for density of 0.5 gr cm-3
+
+Mar 15 2018: added required ASCII files for  MP_PHYSICS=20: SBM_20/ containing inofrmation about bin
+             densities, masses, radii and terminal velocities.
+
+Mar 15 2018: added the look up table for ice PSD parameters for P3 microphysics scheme (MP_PHYSICS=50): P3/
+
+May 18 2017: calculated LUT for small ice
+
+Apr 29 2016: added LLUTS3/mpl/ data files containing the extinction and backscattering cross sections for ice spheres,
+             at densities ranging from 0.1 to 0.93 gr/cm^3 and for frequencies of 353 nm and 532 nm. The used code
+             for electromagnetic scattering by a single homogenous sphere is the 'BHMIE' created by
+             Craig F., Bohren and Donald Ronald Huffman  1983, and available at:
+             https://en.wikipedia.org/wiki/Codes_for_electromagnetic_scattering_by_spheres#Codes_for_electromagnetic_scattering_by_a_single_homogeneous_sphere.
+             Ice particles are assumed to be ice-air mixtures whose refractive index is computed by using Maxwell-Garnett mixing formula. 
+
+Feb 16 2016: added LLUTS3/ceilo/cld_ceilo_905nm_p25.dat data file containing the extinction and
+             backscattering cross sections for spherical particles at 905 nm. The used code 
+             for electromagnetic scattering by a single homogenous sphere is the 'BHMIE' created by
+             Craig F., Bohren and Donald Ronald Huffman  1983, and available at:
+             https://en.wikipedia.org/wiki/Codes_for_electromagnetic_scattering_by_spheres#Codes_for_electromagnetic_scattering_by_a_single_homogeneous_sphere
+
+
+Sep 15 2015: change of the filenames of the ice species (ice_ar0.20 and ice_ar0.90) for 5 GHz:
+             the frequency string in the name "fr05.0GHz" is replaced with "fr05.5GHz" for the 
+             sake of consistency 
+
+
+May 01 2015: the first version of LLUTS3 released
+
+
+
