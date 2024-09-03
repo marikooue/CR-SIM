@@ -26,40 +26,16 @@
 #
 nobase_dist_pkgdata_DATA = \
                 aux/CHANGE_LOG \
-                aux/LLUTS3/ceilo/*.dat \
-                aux/LLUTS3/cloud/*.dat \
-                aux/LLUTS3/gh_ryzh/*.dat \
-                aux/LLUTS3/graupel/*.dat \
-                aux/LLUTS3/graupel_ar0.60/*.dat \
-                aux/LLUTS3/graupel_ar0.80/*.dat \
-                aux/LLUTS3/ice_ar0.20/*.dat \
-                aux/LLUTS3/ice_ar0.90/*.dat \
-                aux/LLUTS3/mpl/*.dat \
-                aux/LLUTS3/partrimedice/*.dat \
-                aux/LLUTS3/partrimedice_ar0.40/*.dat \
-                aux/LLUTS3/partrimedice_ar0.60/*.dat \
-                aux/LLUTS3/partrimedice_ar0.80/*.dat \
-                aux/LLUTS3/raina/*.dat \
-                aux/LLUTS3/rainb/*.dat \
-                aux/LLUTS3/smallice/*.dat \
-                aux/LLUTS3/snow_ar0.60/*.dat \
-                aux/LLUTS3/unrimedice/*.dat \
-                aux/LLUTS3/unrimedice_ar0.40/*.dat \
-                aux/LLUTS3/unrimedice_ar0.60/*.dat \
-                aux/LLUTS3/unrimedice_ar0.80/*.dat \
+                aux/LLUTS3/
                 aux/P3/INFO \
                 aux/P3/*dat\
                 aux/SBM_20/INFO\
                 aux/SBM_20/bulk*\
                 aux/SBM_20/*asc\
-                test/inp/wrf_MP10/wrfout_d01* \
                 test/inp/wrf_MP10/PARAMETERS \
-                test/inp/wrf_MP50/P3_wrfout_d01_2011-05-20_10_00_00\
                 test/inp/wrf_MP50/PARAMETERS \
-                test/inp/rams_MP40/a-A-2013-06-19-210000-g3.h5\
-                test/inp/rams_MP40/a-A-2013-06-19-210000-head.txt\
                 test/inp/rams_MP40/PARAMETERS \
-                test/out_ref/*.nc
+                test/out_ref/
 
 
 testdir=$(pkgdatadir)/test/
