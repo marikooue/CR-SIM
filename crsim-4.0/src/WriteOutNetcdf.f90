@@ -648,7 +648,7 @@ Endif
    att_string="forward scanning radar simulator output" 
    status = nf90_put_att(ncid, NF90_GLOBAL,'description',att_string) 
    !
-   status = nf90_put_att(ncid, NF90_GLOBAL,'model_version','crsim_v3.3')
+   status = nf90_put_att(ncid, NF90_GLOBAL,'model_version','crsim_v4.0')
    !
    att_string=Trim(conf%WRFInputFile)
    status = nf90_put_att(ncid, NF90_GLOBAL,'WRF_input_file',att_string) 
@@ -1480,7 +1480,7 @@ endif
    att_string="forward radar simulator output"
    status = nf90_put_att(ncid, NF90_GLOBAL,'description',att_string)
    !
-   status = nf90_put_att(ncid, NF90_GLOBAL,'model_version','crsim_v3.3')
+   status = nf90_put_att(ncid, NF90_GLOBAL,'model_version','crsim_v4.0')
    !
    att_string=Trim(conf%WRFInputFile)
    status = nf90_put_att(ncid, NF90_GLOBAL,'WRF_input_file',att_string)
