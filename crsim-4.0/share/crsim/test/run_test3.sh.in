@@ -76,8 +76,8 @@ astatus=0 # status for all tests, =0 all tests passed, /=0 otherwise
 nt_status=1  # nominal test case status,  =0 test passed, /=0 otherwise
 echo '-->>     Running CRSIM ...'
 echo ""
-echo ${binDir}/crsim ${InputParamFile} ${InputFile1} ${OutputFile} &> ${log_OutFile}
-${binDir}/crsim ${InputParamFile} ${InputFile1} ${OutputFile} &> ${log_OutFile} 
+echo ${binDir}/crsim ${InputParamFile} ${InputFile1},${InputFile2} ${OutputFile} &> ${log_OutFile}
+${binDir}/crsim ${InputParamFile} ${InputFile1}i,${InputFile2} ${OutputFile} &> ${log_OutFile} 
 ExitCode=$?
 
  if [ "${ExitCode}" -eq 0 ] ; then 
