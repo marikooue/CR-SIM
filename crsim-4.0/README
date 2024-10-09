@@ -58,11 +58,13 @@ ICOsahedral Non-hydrostatic general    	|Seifert and Beheng 2-M scheme
 circulation model (ICON)	       	| (Seifert and Beheng, 2006; Seifert, 2008)
 -------------------------------------------------------------------------------------
 Regional Atmospheric Modeling System	| 2-M scheme (Cotton et al., 2003)
- (RMS)	 	     	      		|
+ (RAMS)	 	     	      		|
 -------------------------------------------------------------------------------------
 System for Atmospheric Modeling		|Tel Aviv University 2-M bin microphysics
  (SAM)       	   	       		|(Tzivion et al.1987; Feingold et al., 1996)
  					|Morrison 2-M scheme (Morrison et al., 2005)
+-------------------------------------------------------------------------------------
+CM1                                     |Morrison 2-M scheme (Morrison et al., 2005)
 =====================================================================================
 
  The CR-SIM can be easily configured to work on other models and microphysics schemes. 
