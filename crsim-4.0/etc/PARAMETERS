@@ -7,7 +7,9 @@
 1,226    # iz_start,iz_end 
 1       # it
 # specify the microphysics Morrison 10, JFan 20, Milbranndt-Yau 9 with snow spherical,optionally 901 for Milbranndt-Yau with snow not spherical, P3 50, and Thompson 8 (modified by DW)
+# 2nd line specify model (default is WRF; set as CM1 is option for NSSLmp only, as 18/CM1)
 10
+WRF
 # specify the indices of radar position ixc,iyc. if ixc=-999, radar locations are every grid box at iyc, iyc=-999, radar locations are every grid box at ixc.
 72,72
 # specify the height of radar in meters

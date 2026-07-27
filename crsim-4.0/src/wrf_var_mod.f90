@@ -117,6 +117,34 @@ real*8,Dimension(:,:,:,:),Allocatable      :: qnhail  ! [1/kg] Hail  Number conc
 !
 End Type wrf_var_mp09
 !!
+Type wrf_var_mp18
+!
+integer                  :: nt
+integer                  :: nx
+integer                  :: ny
+integer                  :: nz
+!
+real*8,Dimension(:,:,:,:),Allocatable      :: qcloud ! [kg/kg] Cloud water mixing ratio
+real*8,Dimension(:,:,:,:),Allocatable      :: qrain  ! [kg/kg] Rain water mixing ratio
+real*8,Dimension(:,:,:,:),Allocatable      :: qice   ! [kg/kg] Ice water mixing ratio
+real*8,Dimension(:,:,:,:),Allocatable      :: qsnow  ! [kg/kg] Snow water mixing ratio
+real*8,Dimension(:,:,:,:),Allocatable      :: qgraup ! [kg/kg] Graupel water mixing ratio
+real*8,Dimension(:,:,:,:),Allocatable      :: qhail  ! [kg/kg] Hail water mixing ratio
+
+real*8,Dimension(:,:,:,:),Allocatable      :: qncloud ! [1/kg] Cloud Number concentration
+real*8,Dimension(:,:,:,:),Allocatable      :: qnrain  ! [1/kg] Rain Number concentration
+real*8,Dimension(:,:,:,:),Allocatable      :: qnice   ! [1/kg] Ice  Number concentration
+real*8,Dimension(:,:,:,:),Allocatable      :: qnsnow  ! [1/kg] Snow  Number concentration
+real*8,Dimension(:,:,:,:),Allocatable      :: qngraup ! [1/kg] Graupel  Number concentration
+real*8,Dimension(:,:,:,:),Allocatable      :: qnhail  ! [1/kg] Hail  Number concentration
+real*8,Dimension(:,:,:,:),Allocatable      :: qvgraup ! [m^3/kg] Graupel volume
+real*8,Dimension(:,:,:,:),Allocatable      :: qvhail  ! [m^3/kg] Hail volume
+real*8,Dimension(:,:,:,:),Allocatable      :: qzgraup ! [m^6/kg] Graupel reflectivity
+real*8,Dimension(:,:,:,:),Allocatable      :: qzhail  ! [m^6/kg] Hail reflectivity
+real*8,Dimension(:,:,:,:),Allocatable      :: qzrain  ! [m^6/kg] Rain reflectivity
+!
+End Type wrf_var_mp18
+!!
 Type wrf_var_mp10
 !
 integer                  :: nt
@@ -390,6 +418,42 @@ Allocate(str%qnhail(nx,ny,nz,nt))
 !
 return
 end subroutine allocate_wrf_var_mp09
+!!
+!!
+subroutine allocate_wrf_var_mp18(str)
+Implicit None
+Type(wrf_var_mp18),Intent(InOut)     :: str
+Integer                              :: nt,nx,ny,nz
+!
+nt=str%nt
+nx=str%nx
+ny=str%ny
+nz=str%nz
+!
+Allocate(str%qcloud(nx,ny,nz,nt))
+Allocate(str%qrain(nx,ny,nz,nt))
+Allocate(str%qice(nx,ny,nz,nt))
+Allocate(str%qsnow(nx,ny,nz,nt))
+Allocate(str%qgraup(nx,ny,nz,nt))
+Allocate(str%qhail(nx,ny,nz,nt))
+!
+Allocate(str%qncloud(nx,ny,nz,nt))
+Allocate(str%qnrain(nx,ny,nz,nt))
+Allocate(str%qnice(nx,ny,nz,nt))
+Allocate(str%qnsnow(nx,ny,nz,nt))
+Allocate(str%qngraup(nx,ny,nz,nt))
+Allocate(str%qnhail(nx,ny,nz,nt))
+
+Allocate(str%qvgraup(nx,ny,nz,nt))
+Allocate(str%qvhail(nx,ny,nz,nt))
+
+Allocate(str%qzgraup(nx,ny,nz,nt))
+Allocate(str%qzhail(nx,ny,nz,nt))
+Allocate(str%qzrain(nx,ny,nz,nt))
+!
+return
+end subroutine allocate_wrf_var_mp18
+
 !!
 subroutine allocate_wrf_var_mp10(str)
 Implicit None
@@ -690,6 +754,36 @@ str%qnhail=m999
 return
 end subroutine initialize_wrf_var_mp09
 !!
+!!
+subroutine initialize_wrf_var_mp18(str)
+Implicit None
+Type(wrf_var_mp18),Intent(InOut)     :: str
+real*8,parameter                     :: m999=-999.d0
+!
+str%qcloud=m999
+str%qrain=m999
+str%qice=m999
+str%qsnow=m999
+str%qgraup=m999
+str%qhail=m999
+!
+str%qncloud=m999
+str%qnrain=m999
+str%qnice=m999
+str%qnsnow=m999
+str%qngraup=m999
+str%qnhail=m999
+
+str%qvgraup=m999
+str%qvhail=m999
+
+str%qzgraup=m999
+str%qzhail=m999
+str%qzrain=m999
+!
+return
+end subroutine initialize_wrf_var_mp18
+!!
 subroutine initialize_wrf_var_mp10(str)
 Implicit None
 Type(wrf_var_mp10),Intent(InOut)     :: str
@@ -947,6 +1041,39 @@ str%nz=0
 !
 return
 end subroutine deallocate_wrf_var_mp09
+!!
+subroutine deallocate_wrf_var_mp18(str)
+Implicit None
+Type(wrf_var_mp18),Intent(InOut)     :: str
+!
+Deallocate(str%qcloud)
+Deallocate(str%qrain)
+Deallocate(str%qice)
+Deallocate(str%qsnow)
+Deallocate(str%qgraup)
+Deallocate(str%qhail)
+!
+Deallocate(str%qncloud)
+Deallocate(str%qnrain)
+Deallocate(str%qnice)
+Deallocate(str%qnsnow)
+Deallocate(str%qngraup)
+Deallocate(str%qnhail)
+!
+Deallocate(str%qvgraup)
+Deallocate(str%qvhail)
+
+Deallocate(str%qzgraup)
+Deallocate(str%qzhail)
+Deallocate(str%qzrain)
+!
+str%nt=0
+str%nx=0
+str%ny=0
+str%nz=0
+!
+return
+end subroutine deallocate_wrf_var_mp18
 !!
 subroutine deallocate_wrf_var_mp10(str)
 Implicit None

@@ -173,6 +173,7 @@
   Type(wrf_var_mp09)             :: mp09
   Type(wrf_var_mp08)             :: mp08 !added by oue 2016/09/19
   Type(wrf_var_mp10)             :: mp10
+  Type(wrf_var_mp18)             :: mp18
   Type(wrf_var_mp20)             :: mp20
   Type(wrf_var_mp30)             :: mp30 !added by oue 2017/07/17 for ICON
   Type(wrf_var_mp40)             :: mp40 !added by oue 2017/07/21 for RAMS
@@ -184,6 +185,7 @@
   Type(env_var)                  :: env 
   Type(hydro_var)                :: hydro
   Type(hydro20_var)              :: hydro20
+  Type(hydro18_var)              :: hydro18
   Type(hydro50_var)              :: hydro50 ! added by DW 2017/10/30 for P3
   Type(hydro70_var)              :: hydro70 ! added by oue for SAM warm bin
   !
@@ -347,8 +349,10 @@
       call ReadInpRAMS_dim(trim(conf%WRFInputFile),wrf,status)
     else if ((conf%MP_PHYSICS==70) .or. (conf%MP_PHYSICS==75)) then!read SAM: added by oue to read SAM
       call ReadInpSAM_dim(trim(conf%WRFInputFile),wrf,status)
-    else if (conf%MP_PHYSICS==80) then!read CM1: added by oue to read CM1 (Apr 2020)
+    else if (conf%MP_PHYSICS==80 .or. conf%ModelName == 'CM1' ) then!read CM1: added by oue to read CM1 (Apr 2020)
       call ReadInpCM1_dim(trim(conf%WRFInputFile),wrf,status)
+    else if ( conf%ModelName == 'COMMAS' ) then ! read COMMAS:
+      call ReadInpCOMMAS_dim(trim(conf%WRFInputFile),wrf,status)
     else
       call ReadInpWRF_dim(trim(conf%WRFInputFile),wrf,status)
     endif
@@ -381,9 +385,12 @@
       if((conf%MP_PHYSICS==75) .and. (conf%InpProfile_flag==1)) conf%InputProfile = conf%WRFmpInputFile
       call ReadInpSAM_var(trim(conf%WRFInputFile),trim(conf%InputProfile),wrf,status)
       call get_env_vars_sam(conf,wrf,env)
-    else if (conf%MP_PHYSICS==80) then!read CM1 by oue for CM1 Apr 2020
+    else if (conf%MP_PHYSICS==80 .or. conf%ModelName == 'CM1' ) then!read CM1 by oue for CM1 Apr 2020
       call ReadInpCM1_var(trim(conf%WRFInputFile),wrf,status)
       call get_env_vars_cm1(conf,wrf,env)
+    else if (conf%ModelName == 'COMMAS' ) then!read CM1 by oue for CM1 Apr 2020
+      call ReadInpCOMMAS_var(trim(conf%WRFInputFile),wrf,status)
+      call get_env_vars_commas(conf,wrf,env)
     else
       call ReadInpWRF_var(trim(conf%WRFInputFile),wrf,status)
       call get_env_vars(conf,wrf,env)
@@ -471,6 +478,101 @@
       !write(*,*) 'snow',minval(hydro%qnhydro(:,:,:,4),mask=hydro%qnhydro(:,:,:,4)>0.d0),maxval(hydro%qnhydro(:,:,:,4))
       !write(*,*) 'graup',minval(hydro%qnhydro(:,:,:,5),mask=hydro%qnhydro(:,:,:,5)>0.d0),maxval(hydro%qnhydro(:,:,:,5))
       !write(*,*) 'hail',minval(hydro%qnhydro(:,:,:,6),mask=hydro%qnhydro(:,:,:,6)>0.d0),maxval(hydro%qnhydro(:,:,:,6))
+  
+      !
+      !write(*,*) '--------------------------------------'
+      !write(*,*) '--------------------------------------'
+      !!pause
+  
+    endif
+    !-------------------------------------------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------------------------------------------
+    ! conf%MP_PHYSICS==18
+    if (conf%MP_PHYSICS==18) then ! NSSL 2-moment scheme
+      WRFmpInputFile=conf%WRFInputFile
+      mp18%nx=nx
+      mp18%ny=ny
+      mp18%nz=nz
+      mp18%nt=nt
+      !
+      call allocate_wrf_var_mp18(mp18)
+      call initialize_wrf_var_mp18(mp18)
+       write(0,*) 'Reading from file: modelname = ',conf%ModelName
+      if ( trim(conf%ModelName) == 'WRF' .or. conf%ModelName == 'CM1' ) then
+        call ReadInpWRF_MP_PHYSICS_18(Trim(WRFmpInputFile),mp18,status)
+      elseif ( conf%ModelName == 'COMMAS' ) then
+        call ReadInpWRF_MP_PHYSICS_18(Trim(WRFmpInputFile),mp18,status)
+!        call ReadInpCOMMAS_MP_PHYSICS_18(Trim(WRFmpInputFile),mp18,status)
+! convert number, etc. from m^-3 to kg^-1: divide by env%rho_d
+      else
+        call ReadInpWRF_MP_PHYSICS_18(Trim(WRFmpInputFile),mp18,status)
+      endif
+      !
+      write(*,*) '-----------------'
+      write(*,*) '---mix ratio---'
+      write(*,*) 'cloud',minval(mp18%qcloud),maxval(mp18%qcloud)
+      write(*,*) 'rain',minval(mp18%qrain),maxval(mp18%qrain)
+      write(*,*) 'ice',minval(mp18%qice),maxval(mp18%qice)
+      write(*,*) 'snow',minval(mp18%qsnow),maxval(mp18%qsnow)
+      write(*,*) 'graupel',minval(mp18%qgraup),maxval(mp18%qgraup)
+      write(*,*) 'hail',minval(mp18%qhail),maxval(mp18%qhail)
+  
+      write(*,*) '---concentr---'
+      write(*,*) 'cloud',minval(mp18%qncloud),maxval(mp18%qncloud)
+      write(*,*) 'rain',minval(mp18%qnrain),maxval(mp18%qnrain)
+      write(*,*) 'ice',minval(mp18%qnice),maxval(mp18%qnice)
+      write(*,*) 'snow',minval(mp18%qnsnow),maxval(mp18%qnsnow)
+      write(*,*) 'graupel',minval(mp18%qngraup),maxval(mp18%qngraup)
+      write(*,*) 'hail',minval(mp18%qnhail),maxval(mp18%qnhail)
+
+      write(*,*) '---volume---'
+      write(*,*) 'graupel',minval(mp18%qvgraup),maxval(mp18%qvgraup)
+      write(*,*) 'hail',minval(mp18%qvhail),maxval(mp18%qvhail)
+
+      write(*,*) '---reflectivity---'
+      write(*,*) 'rain',minval(mp18%qzrain),maxval(mp18%qzrain)
+      write(*,*) 'graupel',minval(mp18%qzgraup),maxval(mp18%qzgraup)
+      write(*,*) 'hail',minval(mp18%qzhail),maxval(mp18%qzhail)
+  
+      write(*,*) '-----------------'
+  
+      hydro18%nx=env%nx
+      hydro18%ny=env%ny
+      hydro18%nz=env%nz
+      hydro18%nht=nsc
+      !----------------------------------------
+      !----------------------------------------
+      call allocate_hydro18_var(hydro18)
+      call initialize_hydro18_var(hydro18)
+      !
+      call get_hydro18_vars(conf,mp18,hydro18)
+      call deallocate_wrf_var_mp18(mp18)
+      !
+      write(*,*) '--------------------------------------'
+      write(*,*) '-------------mass-------------------------'
+      write(*,*) 'cloud',minval(hydro18%qhydro(:,:,:,1)),maxval(hydro18%qhydro(:,:,:,1))
+      write(*,*) 'rain ',minval(hydro18%qhydro(:,:,:,2)),maxval(hydro18%qhydro(:,:,:,2))
+      write(*,*) 'ice  ',minval(hydro18%qhydro(:,:,:,3)),maxval(hydro18%qhydro(:,:,:,3))
+      write(*,*) 'snow ',minval(hydro18%qhydro(:,:,:,4)),maxval(hydro18%qhydro(:,:,:,4))
+      write(*,*) 'graup',minval(hydro18%qhydro(:,:,:,5)),maxval(hydro18%qhydro(:,:,:,5))
+      write(*,*) 'hail',minval(hydro18%qhydro(:,:,:,6)),maxval(hydro18%qhydro(:,:,:,6))
+      write(*,*) '-------------conc-------------------------'
+      !
+  
+      write(*,*) 'cloud ',minval(hydro18%qnhydro(:,:,:,1)),maxval(hydro18%qnhydro(:,:,:,1))
+      write(*,*) 'rain ',minval(hydro18%qnhydro(:,:,:,2)),maxval(hydro18%qnhydro(:,:,:,2))
+      write(*,*) 'ice  ',minval(hydro18%qnhydro(:,:,:,3)),maxval(hydro18%qnhydro(:,:,:,3))
+      write(*,*) 'snow ',minval(hydro18%qnhydro(:,:,:,4)),maxval(hydro18%qnhydro(:,:,:,4))
+      write(*,*) 'graup',minval(hydro18%qnhydro(:,:,:,5)),maxval(hydro18%qnhydro(:,:,:,5))
+      write(*,*) 'hail',minval(hydro18%qnhydro(:,:,:,6)),maxval(hydro18%qnhydro(:,:,:,6))
+      !
+      write(*,*) '--------------volume------------------------'
+      write(*,*) 'graup',minval(hydro18%qvhydro(:,:,:,5)),maxval(hydro18%qvhydro(:,:,:,5))
+      write(*,*) 'hail',minval(hydro18%qvhydro(:,:,:,6)),maxval(hydro18%qvhydro(:,:,:,6))
+      write(*,*) '---------------refl-----------------------'
+      write(*,*) 'rain',minval(hydro18%qzhydro(:,:,:,2)),maxval(hydro18%qzhydro(:,:,:,2))
+      write(*,*) 'graup',minval(hydro18%qzhydro(:,:,:,5)),maxval(hydro18%qzhydro(:,:,:,5))
+      write(*,*) 'hail',minval(hydro18%qzhydro(:,:,:,6)),maxval(hydro18%qzhydro(:,:,:,6))
   
       !
       !write(*,*) '--------------------------------------'
@@ -1064,6 +1166,22 @@
     endif
     !-----------------------------------------
     !-----------------------------------------
+    if (  (conf%MP_PHYSICS==18) ) then ! 
+      rmout%nx=hydro18%nx
+      rmout%ny=hydro18%ny
+      rmout%nz=hydro18%nz
+      rmout%nht=hydro18%nht
+      !
+      IF (conf%radID/=1) THEN ! if radID/=1 include polarimet. vars
+        mout%nx=hydro18%nx
+        mout%ny=hydro18%ny
+        mout%nz=hydro18%nz
+        mout%nht=hydro18%nht
+      ENDIF
+      !
+    endif
+    !-----------------------------------------
+    !-----------------------------------------
     if ((conf%MP_PHYSICS==20).or.(conf%MP_PHYSICS==70)) then !added by oue for SAM warmbin
       rmout%nx=scatt_type(1)%nx
       rmout%ny=scatt_type(1)%ny
@@ -1246,6 +1364,7 @@
               LutFileName = ''
   
               if (conf%MP_PHYSICS== 9) qq=hydro%qhydro(ix,iy,iz,iht)
+              if (conf%MP_PHYSICS==18) qq=hydro18%qhydro(ix,iy,iz,iht)
               if (conf%MP_PHYSICS==10) qq=hydro%qhydro(ix,iy,iz,iht)
               if (conf%MP_PHYSICS==20) qq=scatt_type(iht)%qq(ix,iy,iz)
               if (conf%MP_PHYSICS== 8) qq=hydro%qhydro(ix,iy,iz,iht) !Added by oue 2016/09/19
@@ -1500,6 +1619,8 @@
                   (conf%MP_PHYSICS==30).or.(conf%MP_PHYSICS==40).or.(conf%MP_PHYSICS==75) .or.&
                   (conf%MP_PHYSICS==80)) then !Modified by oue 2016/09/19, 2017/07/17, 2018/06/17 ICON,RAMS,SAM, Apr 2020 CM1
                 qsum=Sum(hydro%qhydro(ix,iy,iz,1:nsc))  
+              elseif (conf%MP_PHYSICS==18) then ! added by erm for NSSL
+                qsum=Sum(hydro18%qhydro(ix,iy,iz,1:nsc))  
               elseif (conf%MP_PHYSICS==50) then ! added by DW for P3
                 qsum=Sum(hydro50%qhydro(ix,iy,iz,1:nsc)) ! added by DW for P3
               ! 
@@ -1587,6 +1708,7 @@
                 do iht=1,nsc ! nsc == 5 in small example
     
                   if (conf%MP_PHYSICS== 9) qq=hydro%qhydro(ix,iy,iz,iht)
+                  if (conf%MP_PHYSICS==18) qq=hydro18%qhydro(ix,iy,iz,iht)
                   if (conf%MP_PHYSICS==10) qq=hydro%qhydro(ix,iy,iz,iht)
                   if (conf%MP_PHYSICS==20) qq=scatt_type(iht)%qq(ix,iy,iz)
                   if (conf%MP_PHYSICS== 8) qq=hydro%qhydro(ix,iy,iz,iht) !Added by oue 2016/09/19
@@ -1629,6 +1751,23 @@
                                       ceilo_back_true,ceilo_ext,&
                                       mpl_back_true,mpl_ext,&
                                       spectra_bins,zhh_spectra,zvh_spectra,zvv_spectra) 
+                    endif
+                    !
+                    if (conf%MP_PHYSICS==18) then ! erm
+                      call processing_nssl(iht, conf,elevx,env%w(ix,iy,iz),&
+                                      env%temp(ix,iy,iz),env%rho_d(ix,iy,iz), env%rho_d(ix,iy,1), &
+                                      hydro18%qhydro(ix,iy,iz,iht),hydro18%qnhydro(ix,iy,iz,iht),&
+                                      hydro18%qvhydro(ix,iy,iz,iht),hydro18%qzhydro(ix,iy,iz,iht), &
+                                      spectra%VNyquist,spectra%NOISE_1km,spectra%NFFT,spectra%Nave,&
+                                      dist_from_radar,w_r,sw_dyn,&
+                                      zhh,zvv,zvh,RHOhvc,&
+                                      dvh,d_dvh,Dopp,&
+                                      Kdp,Adp,Ah,Av,&
+                                      diff_back_phase,&
+                                      ceilo_back_true,ceilo_ext,&
+                                      mpl_back_true,mpl_ext,&
+                                      spectra_bins,zhh_spectra,zvh_spectra,zvv_spectra) 
+
                     endif
                     !
                     if (conf%MP_PHYSICS==50) then ! added by DW 2017/10/30 P3
@@ -2255,6 +2394,7 @@
       !- Liquid water content (cloud + rain) ! [kg/m3] water content 
       if (conf%MP_PHYSICS== 8)  lwc=(hydro%qhydro(:,:,:,1)+hydro%qhydro(:,:,:,2))*env%rho_d 
       if (conf%MP_PHYSICS== 9)  lwc=(hydro%qhydro(:,:,:,1)+hydro%qhydro(:,:,:,2))*env%rho_d 
+      if (conf%MP_PHYSICS== 18) lwc=(hydro18%qhydro(:,:,:,1)+hydro18%qhydro(:,:,:,2))*env%rho_d 
       if (conf%MP_PHYSICS== 10) lwc=(hydro%qhydro(:,:,:,1)+hydro%qhydro(:,:,:,2))*env%rho_d 
       if (conf%MP_PHYSICS== 30) lwc=(hydro%qhydro(:,:,:,1)+hydro%qhydro(:,:,:,2))*env%rho_d 
       if (conf%MP_PHYSICS== 40) lwc=(hydro%qhydro(:,:,:,1)+hydro%qhydro(:,:,:,2)&
@@ -2330,6 +2470,7 @@
       if ((iht>=1) .and. (iht<=nht)) then
         if (conf%MP_PHYSICS== 8)  qqc=hydro%qhydro(:,:,:,iht) !added by oue 2016/09/19
         if (conf%MP_PHYSICS== 9)  qqc=hydro%qhydro(:,:,:,iht)
+        if (conf%MP_PHYSICS==18)  qqc=hydro18%qhydro(:,:,:,iht)
         if (conf%MP_PHYSICS==10)  qqc=hydro%qhydro(:,:,:,iht)
         if (conf%MP_PHYSICS==20)  qqc=scatt_type(iht)%qq
         if (conf%MP_PHYSICS==30)  qqc=hydro%qhydro(:,:,:,iht) !added by oue 2017/07/17 ICON
@@ -2343,6 +2484,7 @@
         do isc=1,nht
           if (conf%MP_PHYSICS== 8) qqc=qqc+hydro%qhydro(:,:,:,isc) !added by oue 2016/09/19
           if (conf%MP_PHYSICS== 9) qqc=qqc+hydro%qhydro(:,:,:,isc)
+          if (conf%MP_PHYSICS==18) qqc=qqc+hydro18%qhydro(:,:,:,isc)
           if (conf%MP_PHYSICS==10) qqc=qqc+hydro%qhydro(:,:,:,isc)
           if (conf%MP_PHYSICS==20) qqc=qqc+scatt_type(isc)%qq
           if (conf%MP_PHYSICS==30) qqc=qqc+hydro%qhydro(:,:,:,isc) !added by oue 2017/07/17 ICON
@@ -2425,6 +2567,7 @@
     !
     if (conf%MP_PHYSICS==08) call deallocate_hydro_var(hydro) !added by oue 2016/09/19
     if (conf%MP_PHYSICS==09) call deallocate_hydro_var(hydro)
+    if (conf%MP_PHYSICS==18) call deallocate_hydro18_var(hydro18)
     if (conf%MP_PHYSICS==10) call deallocate_hydro_var(hydro)
     if (conf%MP_PHYSICS==30) call deallocate_hydro_var(hydro) !added by oue 2017/07/17 ICON
     if (conf%MP_PHYSICS==40) call deallocate_hydro_var(hydro) !added by oue 2017/07/21 RAMS

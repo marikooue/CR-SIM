@@ -242,6 +242,7 @@ Character(len=365) :: InputProfile          ! the name of the profiling data fil
 !
 ! airborne added by oue Oct 2023
 Integer            :: airborne              ! ==0 for radar looking up  (no airborne) and /= 0 otherwise
+Character(len=20)  :: ModelName             ! Default model to WRF; or CM1, SAM, COMMAS
 Real*8             :: pulse_len             ! pulse length for airborne simulation
 Real*8             :: airborne_spd          ! speed of air craft m/s
 Real*8             :: airborne_azdeg        ! azimuth direction of moving aircraft deg from north
@@ -293,6 +294,20 @@ real*8, Dimension(:,:,:,:),Allocatable    :: qhydro  ! hydrometeor mixing ratio 
 real*8, Dimension(:,:,:,:),Allocatable    :: qnhydro ! hydro number concentrat. [1/kg] 
 !
 End Type hydro_var
+!!-------------------------------
+Type hydro18_var
+!
+integer                 :: nx
+integer                 :: ny
+integer                 :: nz
+integer                 :: nht
+!
+real*8, Dimension(:,:,:,:),Allocatable    :: qhydro  ! hydrometeor mixing ratio [kg/kg] 1-cloud, 2-rain, 3-ice, 4-snow 5-graupel
+real*8, Dimension(:,:,:,:),Allocatable    :: qnhydro ! hydro number concentrat. [1/kg] 
+real*8, Dimension(:,:,:,:),Allocatable    :: qvhydro ! hydro volume [m^3/kg] 
+real*8, Dimension(:,:,:,:),Allocatable    :: qzhydro ! reflectivity [m^6/kg] 
+!
+End Type hydro18_var
 !!-------------------------------
 ! Type hydro50_var is added by DW 2017/10/30 for P3
 Type hydro50_var
@@ -661,6 +676,56 @@ str%nht=0
 !
 return
 end subroutine deallocate_hydro_var
+!!
+!!
+subroutine allocate_hydro18_var(str)
+Implicit None
+Type(hydro18_var),Intent(InOut)        :: str
+Integer                              :: nx,ny,nz,nht
+!
+nx=str%nx
+ny=str%ny
+nz=str%nz
+nht=str%nht
+!
+Allocate(str%qhydro(nx,ny,nz,nht))
+Allocate(str%qnhydro(nx,ny,nz,nht))
+Allocate(str%qvhydro(nx,ny,nz,nht))
+Allocate(str%qzhydro(nx,ny,nz,nht))
+!
+return
+end subroutine allocate_hydro18_var
+!!
+subroutine initialize_hydro18_var(str)
+Use phys_param_mod, ONLY: zero
+Implicit None
+Type(hydro18_var),Intent(InOut)        :: str
+!
+!
+str%qhydro=zero
+str%qnhydro=zero
+str%qvhydro=zero
+str%qzhydro=zero
+!
+return
+end subroutine initialize_hydro18_var
+!!
+subroutine deallocate_hydro18_var(str)
+Implicit None
+Type(hydro18_var),Intent(InOut)        :: str
+!
+Deallocate(str%qhydro)
+Deallocate(str%qnhydro)
+Deallocate(str%qvhydro)
+Deallocate(str%qzhydro)
+!
+str%nx=0
+str%ny=0
+str%nz=0
+str%nht=0
+!
+return
+end subroutine deallocate_hydro18_var
 !!
 !subroutine allocate_hydro50_var(str) is added by DW 2017/10/30 for P3
 subroutine allocate_hydro50_var(str)
